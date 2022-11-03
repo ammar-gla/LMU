@@ -1,0 +1,1223 @@
+---
+title:  |
+    | 
+    | Claimant Count data for London Boroughs
+date: "`r format(Sys.Date(),'%B %Y')`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    css:  !expr "here::here('FORMATTING','GLAstyle.css')"
+    includes:
+      in_header: !expr "here::here('FORMATTING','favicon.html')"
+      before_body: !expr "here::here('FORMATTING','header.html')"
+      after_body: !expr "here::here('FORMATTING','footer.html')"
+---
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE,scipen=999)
+knitr::opts_chunk$set(warning = FALSE, message = FALSE) 
+
+#################################################################
+###  Load packages and set paths
+#################################################################
+
+#devtools::install_github("Greater-London-Authority/gglaplot")
+#devtools::install_github("Greater-London-Authority/ldndatar", auth_token = "96e66bb601f49f62f0bb9bdcb73a849ece358ad1")
+#remotes::install_github("wilkelab/ggtext")
+
+# install.packages("extrafont")
+# install.packages('svglite')
+
+#install.packages("rgdal")
+
+library(extrafont)
+library(remotes)
+
+library(here)
+
+library("knitr")
+library("tidyverse")
+library("ggplot2")
+library("ggthemes")
+library("nomisr")
+library("devtools")
+library("remotes")
+library("scales")
+library("gglaplot")
+library("data.table")
+library("janitor")
+library("lubridate")
+library("readr")
+#library("ldndatar")
+library("ggrepel")
+library("plotly")
+library("magrittr")
+library("zoo")
+library("kableExtra")
+library("leaflet")
+library("leafsync")
+library("rgdal")
+
+library(reactable) #For interactive tables
+library(officer) # for fp_text
+
+library(svDialogs) #for pop-ups
+
+### Paths
+INPUT <- paste0(here("INPUT"),"/")
+INTERMEDIATE <- paste0(here("INTERMEDIATE"),"/")
+IMAGES <- paste0(here("IMAGES"),"/")
+FORMATTING <- paste0(here("FORMATTING"),"/")
+
+
+### Geographic codes for UK, London and Boroughs.
+### See "Borough codes.csv" in source folder for reference. 
+
+group_codes <- c(2013265927,2092957697,1811939540,1811939541,1811939542,1811939543,
+                 1811939544,1811939526,1811939527,1811939545,1811939546,1811939547,
+                 1811939548,1811939528,1811939529,1811939530,1811939549,1811939550,
+                 1811939551,1811939552,1811939531,1811939532,1811939553,1811939533,
+                 1811939534,1811939554,1811939535,1811939555,1811939556,1811939536,
+                 1811939557,1811939537,1811939558,1811939538,1811939539)
+
+################################################################################
+### Presets for presenting figures etc.
+################################################################################
+
+signif_thous = 3 #How many significant figures to use when figures are in thousands
+signif_mil = 2 # For millions
+signif_perc = 2 #For percentages
+signif_pp = 3 #For percentage points
+
+digits_mil = 1
+digits_perc = 1
+
+################################################################################
+### Functions
+################################################################################
+
+  ### Define function to always present percentages with one decimal and figures without decimals
+perc_form = function(x, d=1) sprintf(paste0("%1.",d,"f"), x) 
+
+value_form = function(x,s=2,d= -1) format(signif(round(as.numeric(x), d),s), big.mark=",")
+
+
+  ### Function to make conditional text based on values
+condi_text <- function(x,t=c("increase","noun","rise","growth","up","above")) { #Define names by the positive change
+  if(t=="increase") {y = case_when(x<0 ~ "decreased",
+                            x>0 ~ "increased")
+                            return(y)}
+  else if(t=="noun") {y = case_when(x<0 ~ "a decrease",
+                            x>0 ~ "an increase")
+                            return(y)}
+  else if(t=="rise") {y = case_when(x<0 ~ "fell",
+                            x>0 ~ "rose")
+                            return(y)}
+  else if(t=="growth") {y = case_when(x<0 ~ "shrank",
+                            x>0 ~ "grew")
+                            return(y)}
+  else if(t=="up") {y = case_when(x<0 ~ "down",
+                            x>0 ~ "up")
+                            return(y)}
+  else if(t=="above") {y = case_when(x<0 ~ "below",
+                            x>0 ~ "above")
+                            return(y)}
+  else {return("[NB: wrong value for t]")}
+}
+
+### Function to remove negative sign from character strings (needed as formatted numbers are not numerical)
+abs2 <- function(x) {
+  y = gsub("-","",x)
+  return(y)
+}
+
+### Helper function to ensure legend labels are placed correctly
+reverse_legend_labels <- function(plotly_plot) {
+  n_labels <- length(plotly_plot$x$data)
+  plotly_plot$x$data[1:n_labels] <- plotly_plot$x$data[n_labels:1]
+  plotly_plot
+}
+
+################################################################################
+### Downloads and data processing
+################################################################################
+
+  #.............................................................................
+  ### London borough geographical codes
+  #.............................................................................
+  London_LA_codes <-readxl::read_excel(path = here("INPUT","London borough codes.xlsx"), sheet = "Codes") %>% clean_names() %>% rename(geography_name=area)
+
+
+  #.............................................................................
+  ### London sub-regional mapping
+  #.............................................................................
+
+  lon_subregion_map <-readxl::read_excel(path = here("INPUT","Sub_regional mapping.xlsx"), sheet = "Mapping") %>% clean_names() %>% rename(geography_name=london_borough)
+
+  #.............................................................................
+  ### Claimant count time series
+  #.............................................................................
+
+
+  ### London CC time series
+  #london_time_cc <- raw_nomis %>% 
+
+ClaimantCountDownload <- function( data_series = "NM_162_1",
+                              time_period = c("1996-01","latest"),
+                              save_intermediate = TRUE,
+                              geography = group_codes,
+                              line_or_bar = "line") {
+  
+  ### Download the claimant count data from NOMIS
+  
+  raw_nomis <- nomis_get_data(
+                id = data_series, 
+                geography = group_codes,
+                time = time_period) 
+  
+  ### Clean data
+  
+  claimant_count_stats <- raw_nomis %>% 
+    mutate( DATE = as.Date(paste0(DATE, "-01"))) %>% 
+    filter( !is.na(OBS_VALUE) & MEASURES == 20100) %>% 
+    pivot_wider( names_from = MEASURE_NAME, values_from = OBS_VALUE) %>%
+    clean_names() %>% 
+    select( date, date_name, geography_name, gender_name, age_name, last_col(4):last_col()) %>% 
+    rename( sex_name = gender_name)
+  
+  if( line_or_bar == "line")
+  {
+    claimant_count_stats <- claimant_count_stats %>%
+      filter( age_name == "All categories: Age 16+")
+  }
+  
+  
+  ### Save intermediate dataframes if specified
+  
+  if( save_intermediate == TRUE) {
+    fwrite(claimant_count_stats, file = paste0(INTERMEDIATE,Sys.Date(),"_",data_series,"_claimant.csv"))
+  }
+  
+ return( claimant_count_stats) 
+
+}
+  #.............................................................................
+  ### Claimant count data
+  #.............................................................................
+
+  claimant_count_stats <- ClaimantCountDownload( data_series = "NM_162_1", time_period = c("2019-12","latest"), save_intermediate = TRUE, line_or_bar = "bar")
+  
+  # The denominators (not needed)
+  # cc_denominator_data <- nomis_get_data(id="NM_52_1" , time =  c("2019","latest"), geography = group_codes)  %>% 
+  #   filter( !is.na(OBS_VALUE) & MEASURES == 20100 ) %>% 
+  #   clean_names() %>% 
+  #   select( date, date_name, geography_name, sex_name, item_name, obs_value)
+    
+  # ----------- Create subregional data  -------------
+  
+  cc_values_subregion <- claimant_count_stats %>% 
+    select(-record_count) %>% 
+    filter(!(geography_name %in% c("London", "United Kingdom"))) %>% 
+    merge(lon_subregion_map,by="geography_name",all=TRUE) %>%   #merge with sub-regions
+    pivot_longer(cols = c("claimant_count","claimants_as_a_proportion_of_residents_aged_16_64","claimants_as_a_proportion_of_economically_active_residents_aged_16","claimants_as_a_proportion_of_the_workforce"), names_to = "measure_name", values_to = "measure_value",values_drop_na = TRUE ) %>% 
+    pivot_wider(id_cols=c(geography_name:subregional_partnership),names_from = "measure_name",values_from="measure_value") %>% #The two reshapes used to collapse duplicate age rows with NAs
+    mutate(population_res_16_64 = claimant_count/(claimants_as_a_proportion_of_residents_aged_16_64/100),
+           population_res_active = claimant_count/(claimants_as_a_proportion_of_economically_active_residents_aged_16/100)) %>% 
+    select(-c(contains("as_a_proportion"),"geography_name"))   %>%  
+    group_by(date,date_name,sex_name,age_name,subregional_partnership) %>% 
+    summarise(across(c(claimant_count,contains("population")),sum)) %>%   #now grouping at subregional level
+    rename(geography_name = subregional_partnership) %>% 
+    mutate(claimants_as_a_proportion_of_residents_aged_16_64 = 100 * claimant_count / population_res_16_64,
+           claimants_as_a_proportion_of_economically_active_residents_aged_16 = 100 * claimant_count / population_res_active,
+           claimants_as_a_proportion_of_the_workforce= NA) %>% #So that it has same columns as main dataset
+    select(-c(contains("population"))) # No need for it anymore
+  
+  subregions_vector <- unique(na.omit(lon_subregion_map$subregional_partnership)) #extract subregions to make separate tables
+
+  # ----------- Create data for charts and tables  -------------
+  
+  cc_changes_data <- claimant_count_stats %>% 
+    select(-record_count) %>% 
+    rbind(cc_values_subregion) %>% #Add in rows with subregional geographies
+    pivot_longer(cols = c("claimant_count","claimants_as_a_proportion_of_residents_aged_16_64","claimants_as_a_proportion_of_economically_active_residents_aged_16","claimants_as_a_proportion_of_the_workforce"), names_to = "measure_name", values_to = "measure_value",values_drop_na = TRUE ) %>%  
+    group_by(geography_name, measure_name,sex_name,age_name) %>% 
+    mutate(d_change_since_mar20 = case_when( date <= as.Date("2020-03-01") ~ NaN,
+                                           date > as.Date("2020-03-01") ~ measure_value - measure_value[ date == "2020-03-01"]),
+           p_change_since_mar20 = case_when( date <= as.Date("2020-03-01") ~ NaN,
+                                                      date > as.Date("2020-03-01") ~ 100*(measure_value - measure_value[ date == "2020-03-01"])/measure_value[ date == "2020-03-01"]),
+           yoy_change = case_when( date - min(date) < 365 ~ NaN,
+                                   date - min(date) > 365 ~ 
+                                     (measure_value - lag(measure_value, n = 12))),
+           yoy_percentage_change = case_when( date - min(date) < 365 ~ NaN,
+                                              date - min(date) > 365 ~ 
+                                                100*(measure_value - lag(measure_value, n = 1))/lag(measure_value, n = 12)),
+           mom_d_change =   (measure_value - lag(measure_value, n = 1)),
+           mom_p_change = 100*(measure_value - lag(measure_value, n = 1))/lag(measure_value, n = 1),
+           is_la = case_when(geography_name %in% c("London","United Kingdom",subregions_vector) ~ 0,
+                             TRUE ~ 1)) %>% 
+    arrange(date,geography_name,sex_name,age_name,measure_name) %>% 
+    ungroup()
+  
+  # ----------- Create boroughs data for maps -------------
+  
+  la_cc_map_data <- cc_changes_data %>% 
+    filter(is_la==1 & date==max(date) & sex_name=="Total" & age_name=="All categories: Age 16+") %>% 
+    merge(London_LA_codes,by='geography_name') %>% 
+    arrange(geography_name,date)
+  
+  # ------------------ Separate frame for overall London timeseries------------- 
+  
+  lon_cc_data <- cc_changes_data %>% filter(geography_name=="London" & age_name=="All categories: Age 16+" & sex_name=="Total")
+
+  #-----------------------------------------------------------------------------
+  ### Define GLA line chart function
+  #-----------------------------------------------------------------------------
+  
+  GLALineChart <- function( data_set = lfs_stats, ### This function has been written to work specifically with the NM_59_1 dataset
+                        lfs_or_claims = "lfs",
+                        x_var = date, ### Assumed that this will be a line chart with dates on the x-axis
+                        y_var = NULL, ### See document "[today's date]colnames.csv" for variables available for charting
+                        geography = c("London", "United Kingdom"),
+                        suffix = "%",
+                        y_limits = c(0,100),
+                        nudge_y = NULL,
+                        title = NULL,
+                        subtitle = paste0("Latest data for period ", new_release),
+                        caption = "",
+                        chart_name = NULL) {
+      
+    pal <- gla_pal(gla_theme = "default", palette_type = "highlight", n = c(1, 1))
+    theme_set(theme_gla(gla_theme = "default"))
+    
+    ### Create dataset for charting
+    
+    if( lfs_or_claims == "lfs") {
+    
+    for_charting <- data_set %>% 
+      filter( geography_name %in% geography & value_type_name == "Level" & sex_name == "Total" & measures == 20207)
+    } else {
+    for_charting <- data_set %>% 
+      filter( geography_name %in% geography & sex_name == "Total" & !is.na({{y_var}}))
+    }
+    ### Set x-axis format
+  
+    ### Plot charts
+    
+    new_release <- for_charting$date_name[for_charting$date == max(for_charting$date)]
+    
+    glaplot <- for_charting %>%
+      ggplot(mapping = aes(x = {{x_var}}, y = {{y_var}}, 
+                           colour = geography_name, group = geography_name,
+                           text = paste(
+                          geography_name, "\n",
+                          format({{x_var}},'%B %Y'), "\n",
+                          "Rate: ", perc_form({{y_var}}),"%", "\n",
+                          sep = ""))) +
+      ggla_line(aes(size= geography_name)) +
+      scale_size_manual(values = c(4 * mm_to_pt, 2 * mm_to_pt)) +
+      scale_colour_manual(values = pal) +
+      ggla_highlight(filter_type = "end") +
+      ggla_highlight(mapping = aes(label = paste0({{y_var}}, "%")),
+                     geom = GeomGLATextHighlight, filter_type = "end",  size = 4.5,
+                     position = position_nudge(y = nudge_y),check_overlap = TRUE)+
+      coord_cartesian(clip = 'off') +
+      scale_y_continuous(expand = c(0, 0), labels = dollar_format(prefix = "", 
+                                                                  suffix = suffix, 
+                                                                  largest_with_cents = 1), 
+                                                                  limits = y_limits) +
+      scale_x_date( date_breaks = "2 months",
+                    date_labels = "%b'%y",
+                    expand = expansion( mult = c(0.1,0.02))) +
+      theme(plot.margin = unit(c(1,1,1,1), "cm"))+
+      labs(title = title,
+           subtitle = subtitle,
+           caption = caption) +
+      theme(plot.caption = element_text(color = rgb(166,166,166,maxColorValue = 255)))
+    
+    ggsave( paste0(IMAGES,Sys.Date(),"_",chart_name,".svg"), device = "svg", width = 8, height = 8, units = "in")
+    ggsave( paste0(IMAGES,Sys.Date(),"_",chart_name,".png"), device = "png", width = 8, height = 8, units = "in")
+    
+    return(glaplot)
+    
+  }
+
+```
+
+<hr  width="100%" style="background-color: rgb(134,139,142);height: 1.0px;margin: 0;"/>
+
+<br/>
+
+
+```{r cc figures, echo=FALSE}
+
+cc_newdate <- lon_cc_data  %>% filter(date==max(date)) %>% filter(row_number()==1) %>% pull(date)
+
+cc_newmonth <- as.character(lon_cc_data  %>% filter(date==max(date)) %>% filter(row_number()==1) %>% select(date_name))
+
+cc_newmonth_abr <- format(cc_newdate,"%b %y")
+
+```
+
+## Notes on the Claimant Count
+
+<br/>
+
+The ONS has published its latest figures for `r cc_newmonth` for the number of people claiming unemployment related benefits - [the ONS Claimant Count](https://www.ons.gov.uk/employmentandlabourmarket/peoplenotinwork/unemployment/datasets/claimantcountandvacanciesdataset). This briefing presents the latest statistics for local authorities in London.
+
+The claimant count is the number of people claiming Jobseeker’s Allowance plus people claiming Universal Credit who are required to seek work. It is a timely source of data for tracking changes in the labour market at a local level, although many new claimants will not be wholly unemployed, partly due to changes in Universal Credit eligibility*. Some claimants will be unemployed and seeking work, others may be temporarily inactive or away from work, or employed but with low earnings. For more information see [here](https://researchbriefings.files.parliament.uk/documents/CBP-8748/CBP-8748.pdf). 
+
+Only non-seasonally adjusted data is available at the local level. We therefore use non-seasonally adjusted data throughout this briefing for consistency.
+
+
+<a href="#top">Back to top</a>
+
+<foot>*Under Universal Credit, a broader span of claimants are also required to look for work than under Jobseeker’s
+Allowance. The [DWP Alternative Claimant Count](https://www.gov.uk/government/collections/alternative-claimant-count-statistics) series adjusts for this over time. However, that series is less timely than the ONS Claimant Count and the differences between the two are modest for recent periods.<foot>
+
+```{r lon_cc figures, echo=FALSE}
+
+cc_lon_level <- value_form(lon_cc_data %>% filter( date == max(date) & measure_name=="claimant_count") %>% select(measure_value),s=signif_thous, d=digits_mil)
+
+cc_lon_level_mar20 <- value_form(lon_cc_data %>% filter( date == as.Date("2020-03-01") & measure_name=="claimant_count") %>% select(measure_value),s=signif_thous, d=digits_mil)
+
+cc_lon_p_mar20 <- perc_form(lon_cc_data %>% filter( date == max(date) & measure_name=="claimant_count") %>% select(p_change_since_mar20),d=0)
+
+cc_lon_level_max <- value_form(lon_cc_data %>% filter( measure_name=="claimant_count") %>% filter( measure_value == max(measure_value))%>% select(measure_value),s=signif_thous, d=digits_mil)
+
+cc_lon_level_max_date <- as.character(lon_cc_data %>% filter( measure_name=="claimant_count") %>% filter( measure_value == max(measure_value))%>% select(date_name))
+
+cc_lon_d_max <- value_form(
+  (lon_cc_data %>% filter(date == max(date) & measure_name=="claimant_count") %>% select(measure_value))-
+  (lon_cc_data %>% filter(measure_name=="claimant_count") %>% filter( measure_value == max(measure_value))%>% select(measure_value))
+  ,s=signif_thous, d=digits_mil)
+
+cc_lon_p_max <- perc_form(
+  (100*((lon_cc_data %>% filter(date == max(date) & measure_name=="claimant_count") %>% select(measure_value))-
+     (lon_cc_data %>% filter(measure_name=="claimant_count") %>% filter(measure_value == max(measure_value))%>% select(measure_value)))/
+    (lon_cc_data %>% filter(measure_name=="claimant_count") %>% filter(measure_value == max(measure_value))%>% select(measure_value)))
+  , d=0)
+
+cc_lon_d_mom <- value_form(lon_cc_data %>% filter( date == max(date) & measure_name=="claimant_count") %>% select(mom_d_change),s=signif_thous, d=digits_mil)
+
+cc_lon_p_mom <- perc_form(lon_cc_data %>% filter( date == max(date) & measure_name=="claimant_count") %>% select(mom_p_change), d=digits_perc)
+
+```
+
+
+<hr  width="100%" style="background-color: rgb(134,139,142);height: 1.0px;margin: 0;"/>
+
+<br/>
+
+## London claimant count
+
+<br/>
+
+Changes in the claimant count in London since March 2020, when the lockdown began, help to illustrate the impact of the COVID-19 pandemic.
+
+- From March 2020 to `r cc_newmonth`, the non-seasonally adjusted claimant count `r condi_text(cc_lon_p_mar20,"rise")` from `r cc_lon_level_mar20` to `r cc_lon_level` (`r abs2(cc_lon_p_mar20)`%).
+- The claimant count peaked at approximately `r cc_lon_level_max` in `r cc_lon_level_max_date`. Since then, the non-seasonally adjusted claimant count `r condi_text(cc_lon_d_max,"rise")` by around `r abs2(cc_lon_d_max)` (`r abs2(cc_lon_p_max)`%).
+- Focusing on the last month in the period up to `r cc_newmonth`, the non-seasonally adjusted claimant count `r condi_text(cc_lon_d_mom,"rise")`  by `r abs2(cc_lon_d_mom)` (`r abs2(cc_lon_p_mom)`%). 
+
+The following sections present a breakdown of the latest data for people living in local authorities in London.
+
+<a href="#top">Back to top</a>
+
+```{r Lon CC chart, echo=FALSE,fig.cap = lon_cc_cap, out.width='100%' }
+
+pal <- gla_pal(gla_theme = "default", palette_type = "highlight", n = c(1, 1))
+theme_set(theme_gla(gla_theme = "default"))
+
+lon_cc_timechart <- lon_cc_data  %>%
+                    filter(date >= "2020-01-01" & measure_name == "claimant_count") %>%
+                    ggplot(mapping = aes(x = date, y = measure_value,
+                                          colour = geography_name, group = geography_name,
+                           text = paste(
+                          format(date,'%B %Y'), "\n",
+                          "Claimant count: ", value_form(measure_value), "\n",
+                          sep = ""))) +
+                    ggla_line(aes(size= geography_name)) +
+                    scale_size_manual(values = c(4 * mm_to_pt, 2 * mm_to_pt)) +
+                    scale_colour_manual(values = pal) +
+                    coord_cartesian(clip = 'off') +
+                    geom_hline(aes(yintercept=0), colour="gray45") +
+                    scale_y_continuous(expand = c(0, 0), labels = dollar_format(prefix = "",
+                                                                                suffix = "",
+                                                                                largest_with_cents = 1),
+                                       limits = c(0,600000)) +
+                    scale_x_date( date_breaks = "3 months",
+                                  date_labels = "%b'%y",
+                                  expand = expansion( mult = c(0.1,0.02))) +
+                    theme(plot.margin = unit(c(1,1,1,1), "cm"))+
+                    labs(title =  "ONS Claimant Count in London",
+                         subtitle = paste0("January 2020 to ", lon_cc_data$date_name[lon_cc_data$date == max(lon_cc_data$date)]," (not seasonally adjusted)"),
+                         caption = "\nSource: Claimant count by sex and age (Nomis) – data is not seasonally adjusted (NSA).")+
+                    theme(plot.caption = element_text(color = rgb(166,166,166,maxColorValue = 255)))
+
+ggsave( paste0(IMAGES,Sys.Date(),"_","lon_cc",".svg"), device = "svg", width = 8, height = 8, units = "in")
+ggsave( paste0(IMAGES,Sys.Date(),"_","lon_cc",".png"), device = "png", width = 8, height = 8, units = "in")
+
+
+ggplotly(lon_cc_timechart,tooltip = "text") %>% 
+  ggla_plotly_settings()    %>% 
+  layout(title = list(text = paste0("<b>","ONS Claimant Count in London","</b>",
+                                    "<br>",
+                                    "<sup>",
+                                    paste0("January 2020 to ", lon_cc_data$date_name[lon_cc_data$date == max(lon_cc_data$date)]," (not seasonally adjusted)"),
+                                    "</sup>",
+                                    "<br>"),
+         font = list(size = 22),
+         y = .95, xref = "plot"),
+         xaxis = list(tickfont = list(size = 15)),
+         yaxis = list(tickfont = list(size = 15)),
+         legend = list(font = list(size = 15),title=list(text="")),
+         hovermode = "x") 
+
+lon_cc_cap <- paste0("Source: Claimant count by sex and age (Nomis) – data is not seasonally adjusted (NSA).")
+
+```
+
+
+```{r cc_la stats 1, echo=FALSE}
+
+highest_cc_rate <- cc_changes_data %>% filter(is_la==1 & date==max(date) & sex_name=="Total" & age_name=="All categories: Age 16+" & measure_name=="claimants_as_a_proportion_of_residents_aged_16_64") %>% slice_max(measure_value,n=3) 
+
+highest_cc_level <- cc_changes_data %>% filter(is_la==1 & date==max(date) & sex_name=="Total" & age_name=="All categories: Age 16+" & measure_name=="claimant_count") %>% slice_max(measure_value,n=3) 
+
+```
+
+<hr  width="100%" style="background-color: rgb(134,139,142);height: 1.0px;margin: 0;"/>
+
+<br/>
+
+## Claimant count by London local authority {.tabset}
+
+<br/>
+
+Across London local authorities in `r cc_newmonth`:
+
+- `r as.character(highest_cc_rate[1,"geography_name"])` had the highest claimant rate at `r perc_form(highest_cc_rate[1,"measure_value"])`%, followed by `r as.character(highest_cc_rate[2,"geography_name"])` (`r perc_form(highest_cc_rate[2,"measure_value"])`%) and `r as.character(highest_cc_rate[3,"geography_name"])` (`r perc_form(highest_cc_rate[3,"measure_value"])`%).
+
+- `r as.character(highest_cc_level[1,"geography_name"])` had the highest claimant count level at `r value_form(highest_cc_level[1,"measure_value"],s=signif_thous)`, followed by `r as.character(highest_cc_level[2,"geography_name"])` (`r value_form(highest_cc_level[2,"measure_value"],s=signif_thous)`) and `r as.character(highest_cc_level[3,"geography_name"])` (`r value_form(highest_cc_level[3,"measure_value"],s=signif_thous)`).
+
+<a href="#top">Back to top</a>
+
+```{r map format,results="asis", echo=FALSE}
+# This code is needed to force background of Leaflet map to be white
+cat("
+<style>
+.leaflet-container {
+    background: #FFF;
+}
+</style>
+")
+```
+
+```{r cc borough map, echo=FALSE}
+  
+  # Produces two interactive maps, one with count and one with rate
+  
+  #Read the shape file from the drive
+  boroughs <- readOGR(dsn = here("INPUT","statistical-gis-boundaries-london","ESRI"),
+                      layer = "London_Borough_Excluding_MHW",
+                      verbose = FALSE) %>%
+    spTransform(CRS("+proj=longlat +datum=WGS84"))
+  
+  # Prepare data
+  la_cc_map_data_geo <- la_cc_map_data %>%
+    mutate(tooltip=case_when(measure_name=="claimant_count" ~  paste("Claimant count: ", value_form(measure_value,s=signif_thous), "\n", sep = ""),
+           measure_name=="claimants_as_a_proportion_of_residents_aged_16_64" ~ paste("Claimant rate: ", perc_form(measure_value),"%", "\n", sep = ""))) %>% 
+    rename(GSS_CODE=gss_code, value=measure_value) #Necessary since the shape files use upper caps variable names
+  
+  #Make a function to make things easier
+  
+  map_function <- function(data_in, filter_val, polygons, perc, bins, palette, map_title){
+    
+    #Filter for respective rows
+    data <- data_in %>% filter(measure_name==paste(filter_val))
+  
+    #Join data to polygons
+    polygons@data <- left_join(polygons@data, data, by="GSS_CODE")
+    
+    #Create the palette
+    pal <- colorBin(palette, domain = polygons$value, bins = bins)
+    
+    #Make tool tip
+    labels <- sprintf(
+      "<strong>%s</strong><br/>%s",
+      polygons$NAME, polygons$tooltip
+    ) %>% lapply(htmltools::HTML)
+  
+    
+    #Make map
+    if(perc==TRUE) {
+    map_output <- leaflet() %>%
+      addPolygons(data = polygons,
+                  fillColor = ~pal(value),
+                  weight = 1,
+                  opacity = 1,
+                  color = "grey",
+                  fillOpacity = 0.8,
+                  label = labels,
+                  labelOptions = labelOptions(
+                    style = list("font-weight" = "normal", padding = "3px 8px"),
+                    textsize = "15px",
+                    direction = "auto")) %>%
+      addLegend(pal = pal, values = polygons$value, opacity = 0.8,
+                title = map_title,
+                position = "bottomright",
+                  labFormat = labelFormat(between = "% to ", suffix="%"))
+    }
+    
+    if(perc==FALSE) {
+      map_output <- leaflet() %>%
+      addPolygons(data = polygons,
+                  fillColor = ~pal(value),
+                  weight = 1,
+                  opacity = 1,
+                  color = "grey",
+                  fillOpacity = 0.8,
+                  label = labels,
+                  labelOptions = labelOptions(
+                    style = list("font-weight" = "normal", padding = "3px 8px"),
+                    textsize = "15px",
+                    direction = "auto")) %>%
+      addLegend(pal = pal, values = polygons$value, opacity = 0.8,
+                title = map_title,
+                position = "bottomright",
+                  labFormat = labelFormat(between = " to ", suffix=""))
+    }
+    
+    return(map_output)
+  }
+  
+  # Bins 
+  ## define them dynamically for counts
+  bin_breaks <-  5
+  bin_count <- vector(length = bin_breaks+1)
+  
+  bin_max_count <- ceiling(as.numeric(la_cc_map_data %>%
+    filter(measure_name=="claimant_count") %>%
+    filter(measure_value==max(measure_value)) %>%
+    select(measure_value))/100)*100 # Native rounding functions are not optimal as range may be cut off
+  bin_min_count <- floor(as.numeric(la_cc_map_data %>%
+    filter(measure_name=="claimant_count") %>%
+    filter(measure_value==min(measure_value)) %>%
+    select(measure_value))/100)*100
+  bin_range_count = bin_max_count - bin_min_count
+  bin_interval_count = ceiling((bin_range_count/bin_breaks)/100)*100
+  
+  
+  for (val in 0:bin_breaks) {
+    bin_count[val+1] =  bin_min_count + (bin_interval_count * val)
+  }
+  
+  remove(val)
+  
+  ## For rates, do it MANUALLY
+  bin_rate <- c(0,2,4,6,8,10)
+  
+  # Colour palette, title and captions
+  ## For count map
+  map_palette_count <- rev(gla_pal(gla_theme="default",palette_type = "quantitative", main_colours = "red", n = 6)) #A bug with GLA_Pal necessitates reversing order
+  map_title_count <- paste0("Number of claimants","<br>" ,"aged 16+")
+  
+  
+  ## For rates map
+  map_palette_rate <- rev(gla_pal(gla_theme="inverse", palette_type = "quantitative", main_colours = "red", n = 6))
+  map_title_rate <- paste0("Claimants as a proportion","<br>" ,"of residents aged 16-64")
+  
+  map_cap <- paste0("Source: Claimant count by sex and age (Nomis) – data is not seasonally adjusted. Contains Ordnance Survey data Crown copyright and database rights [2015].")
+  
+  #Run Map
+  cc_count_map <- map_function(la_cc_map_data_geo,"claimant_count", boroughs,perc=FALSE, bin_count, map_palette_count, map_title_count)
+  cc_rate_map <- map_function(la_cc_map_data_geo,"claimants_as_a_proportion_of_residents_aged_16_64", boroughs,perc=TRUE, bin_rate, map_palette_rate, map_title_rate)
+  ## The code below is for side-by-side maps, which we not doing
+  #latticeview(cc_count_map,cc_rate_map,sync.cursor=FALSE)
+  
+
+```
+
+
+### Claimant rate
+``` {r map rate, echo=FALSE,fig.cap = map_cap,out.width='100%'}
+
+  cc_rate_map
+
+```
+
+<hr  width="100%" style="background-color: rgb(134,139,142);height: 1.0px;margin: 0;"/>
+
+<br/>
+
+### Number of claimants
+
+``` {r map count, echo=FALSE,fig.cap = map_cap,out.width='100%'}
+
+cc_count_map
+
+```
+
+<hr  width="100%" style="background-color: rgb(134,139,142);height: 1.0px;margin: 0;"/>
+
+<br/>
+
+```{r cc_la stats 2, echo=FALSE}
+  
+  highest_cc_count_growth <- cc_changes_data %>% filter(is_la==1 & date==max(date) & sex_name=="Total" & age_name=="All categories: Age 16+" & measure_name=="claimant_count") %>% slice_max(d_change_since_mar20,n=3) 
+  
+  highest_cc_rate_growth <- cc_changes_data %>% filter(is_la==1 & date==max(date) & sex_name=="Total" & age_name=="All categories: Age 16+" & measure_name=="claimants_as_a_proportion_of_residents_aged_16_64") %>% slice_max(d_change_since_mar20,n=3) 
+
+  # Loop through the count and rate highest growers 
+  
+  for (measure in c("count","rate")) {
+    
+    dat_temp <- eval(as.name(paste0("highest_cc_",measure,"_growth")))
+    
+    for (num_la in 1:3) {
+      
+      growth_high_x_name <- dat_temp %>% filter(row_number()==num_la) %>% pull(geography_name)
+      
+      growth_high_x_d <- dat_temp %>% filter(row_number()==num_la) %>% select(d_change_since_mar20)
+      
+      growth_high_x_p <- perc_form(dat_temp %>% filter(row_number()==num_la) %>% select(p_change_since_mar20),d = 0)
+      
+      assign(paste0("la_growth_high_",measure,"_",num_la,"_name"),growth_high_x_name)
+      assign(paste0("la_growth_high_",measure,"_",num_la,"_d"),growth_high_x_d)
+      assign(paste0("la_growth_high_",measure,"_",num_la,"_p"),growth_high_x_p)
+      remove(growth_high_x_name)
+      remove(growth_high_x_d)
+      remove(growth_high_x_p)
+    }
+  }
+  
+  remove(measure)
+  remove(num_la)
+  
+  gender_cc_growth <- cc_changes_data %>%
+    filter(is_la==1 & date==max(date) & age_name=="All categories: Age 16+" & measure_name=="claimant_count") %>% 
+    select(geography_name,sex_name,d_change_since_mar20) %>%
+    pivot_wider(id_cols = geography_name,names_from = sex_name,values_from = d_change_since_mar20) %>% 
+    clean_names() %>% 
+    mutate(male_share=male/total*100, female_share=female/total*100)
+  
+  min_male_share <- min(gender_cc_growth$male_share)
+  max_male_share <- max(gender_cc_growth$male_share)
+
+```
+
+
+## Changes by local authority {.tabset}
+
+<br/>
+
+Between March 2020 and `r cc_newmonth`:
+
+ - The boroughs of `r la_growth_high_count_1_name`, `r la_growth_high_count_2_name` and `r la_growth_high_count_3_name` saw the largest absolute increases in the claimant count. They saw increases of `r value_form(la_growth_high_count_1_d, s = signif_thous)` (`r la_growth_high_count_1_p`%), `r value_form(la_growth_high_count_2_d, s = signif_thous)` (`r la_growth_high_count_2_p`%), and `r value_form(la_growth_high_count_3_d, s = signif_thous)` (`r la_growth_high_count_3_p`%), respectively.
+ 
+ - The boroughs with the highest percentage point increases in the claimant rate were  `r la_growth_high_rate_1_name` (`r value_form(la_growth_high_rate_1_d, d=1)`pp), `r la_growth_high_rate_2_name` (`r value_form(la_growth_high_rate_2_d, d=1)`pp), and `r la_growth_high_rate_3_name` (`r value_form(la_growth_high_rate_3_d, d=1)`pp).
+ 
+ - Men accounted for between `r perc_form(min_male_share,d=0)`% and `r perc_form(max_male_share,d=0)`% of the net increase in claimants recorded across local authorities.
+
+<a href="#top">Back to top</a>
+
+### Change in claimant count
+
+```{r cc bar by LA, echo=FALSE,fig.cap = la_barcap, out.width='100%'}
+
+pal <- gla_pal(gla_theme = "default", palette_type = "highlight", n = c(1, 1))
+theme_set(theme_gla(gla_theme = "default"))
+
+
+# Filter for LA and rank according to most total claimants
+la_cc_ranking <- cc_changes_data %>%  
+  filter(is_la==1 & date==max(date) & age_name=="All categories: Age 16+" & sex_name=="Total" & measure_name=="claimant_count") %>% 
+  mutate(chart_rank=dense_rank(desc(d_change_since_mar20))) %>% 
+  select(geography_name,chart_rank)
+
+
+la_cc_bar <- cc_changes_data %>%  
+  filter(is_la==1 & date==max(date) & age_name=="All categories: Age 16+" & sex_name!="Total" & measure_name=="claimant_count") %>% 
+  merge(la_cc_ranking,by="geography_name") %>% 
+  group_by(geography_name,sex_name)  %>%
+  arrange(-chart_rank,sex_name) %>% 
+  ggplot(mapping = aes(x =  factor(reorder(geography_name, -chart_rank)),
+                       y = d_change_since_mar20, 
+                       colour = sex_name , fill=sex_name, width = 0.5,
+                       text = paste(geography_name, "\n",
+                                    sex_name,"\n",
+                                    "Change: ", value_form(d_change_since_mar20), "\n",
+                                    sep = ""))) +
+  geom_bar(stat = "identity", position = "stack") +
+  geom_hline(aes(yintercept=0), colour="gray45") +
+  scale_color_manual(values = c(pal[1],pal[1]), aesthetics = "colour")+
+  scale_fill_manual(values = c("white",pal[1]), aesthetics = "fill")+
+  theme_set(theme_gla(gla_theme = "default", y_label_length=100)) + #GLA theme and removes lines below y-axis labels
+  scale_y_continuous(limits = c(0, 15000), labels = dollar_format(prefix = "", 
+                                                                 suffix = "", 
+                                                                 largest_with_cents = 1)) +
+  theme(plot.margin = unit(c(1,1,1,1), "cm"))+
+  scale_x_discrete(expand = c(0,0)) +
+  theme(panel.grid.major.y = element_blank(),
+        panel.grid.minor.y = element_blank(),
+        panel.grid.major.x = element_line( size=.5 )) + 
+  coord_flip()+
+  labs(title = paste0("Change in claimant count by local authority and sex"),
+       subtitle = paste0("Non-seasonally adjusted, between March 2020 and ", cc_newmonth),
+       caption = "\nSource:  Claimant count by sex and age (Nomis) – data is not seasonally adjusted.")+
+  theme(plot.caption = element_text(color = rgb(166,166,166,maxColorValue = 255)))
+
+ggsave(paste0(IMAGES,Sys.Date(),"_","la_bar_change",".svg"), device = "svg", width = 8, height = 8, units = "in")
+ggsave(paste0(IMAGES,Sys.Date(),"_","la_bar_change",".png"), device = "png", width = 8, height = 8, units = "in")
+
+
+#knitr::include_graphics(paste0(IMAGES,Sys.Date(),"_","wfj_industries",".svg"))
+
+ggplotly(la_cc_bar,tooltip = "text") %>% 
+  ggla_plotly_settings()    %>% 
+  layout(title = list(text = paste0("<b>","Change in claimant count by local authority and sex","</b>",
+                                    "<br>",
+                                    "<sup>",
+                                    paste0("Non-seasonally adjusted, between March 2020 and ", cc_newmonth),
+                                    "</sup>",
+                                    "<br>"),
+                      font = list(size = 22),
+                      y = .95, xref = "plot"),
+         xaxis = list(tickfont = list(size = 14), showgrid=TRUE),
+         yaxis = list(tickfont = list(size = 12), showgrid=FALSE),
+         legend = list(font = list(size = 14),title=list(text="")),
+         margin = list(l = 160)) %>% 
+  reverse_legend_labels()
+
+
+la_barcap <- paste0("Source: Claimant count by sex and age (Nomis) – data is not seasonally adjusted.")
+
+```
+<hr  width="100%" style="background-color: rgb(134,139,142);height: 1.0px;margin: 0;"/>
+
+<br/>
+
+### Change in claimant rate
+
+```{r cc bar rate by LA, echo=FALSE,fig.cap = la_bar_ratecap, out.width='100%'}
+
+pal <- gla_pal(gla_theme = "default", palette_type = "highlight", n = c(1, 1))
+theme_set(theme_gla(gla_theme = "default"))
+
+
+# Filter for LA and rank according to most total claimants
+la_cc_ranking_rate <- cc_changes_data %>%  
+  filter(is_la==1 & date==max(date) & age_name=="All categories: Age 16+" & sex_name=="Total" & measure_name=="claimants_as_a_proportion_of_residents_aged_16_64") %>% 
+  mutate(chart_rank=dense_rank(desc(d_change_since_mar20))) %>% 
+  select(geography_name,chart_rank)
+
+
+la_cc_rate_bar <- cc_changes_data %>%  
+  filter(is_la==1 & date==max(date) & age_name=="All categories: Age 16+" & sex_name=="Total" & measure_name=="claimants_as_a_proportion_of_residents_aged_16_64") %>% 
+  merge(la_cc_ranking_rate,by="geography_name") %>% 
+  group_by(geography_name)  %>%
+  arrange(-chart_rank) %>% 
+  ggplot(mapping = aes(x =  factor(reorder(geography_name, -chart_rank)),
+                       y = d_change_since_mar20, width = 0.5,
+                       text = paste(geography_name, "\n",
+                                    "Change: ", value_form(d_change_since_mar20,d=1),"pp", "\n",
+                                    sep = ""))) +
+  geom_bar(stat = "identity", position = "stack", fill=pal[1],colour=pal[1]) +
+  geom_hline(aes(yintercept=0), colour="gray45") +
+  theme_set(theme_gla(gla_theme = "default", y_label_length=100)) + #GLA theme and removes lines below y-axis labels
+  scale_y_continuous(limits = c(0, 5), labels = dollar_format(prefix = "", 
+                                                                 suffix = "pp", 
+                                                                 largest_with_cents = 1)) +
+  theme(plot.margin = unit(c(1,1,1,1), "cm"))+
+  scale_x_discrete(expand = c(0,0)) +
+  theme(panel.grid.major.y = element_blank(),
+        panel.grid.minor.y = element_blank(),
+        panel.grid.major.x = element_line( size=.5 )) + 
+  coord_flip()+
+  labs(title = paste0("Change in claimant rate (16-64) by local authority"),
+       subtitle = paste0("Non-seasonally adjusted, percentage point change between March 2020 and ", cc_newmonth),
+       caption = "\nSource:  Claimant count by sex and age (Nomis) – data is not seasonally adjusted.")+
+  theme(plot.caption = element_text(color = rgb(166,166,166,maxColorValue = 255)))
+
+ggsave(paste0(IMAGES,Sys.Date(),"_","la_bar_change",".svg"), device = "svg", width = 8, height = 8, units = "in")
+ggsave(paste0(IMAGES,Sys.Date(),"_","la_bar_change",".png"), device = "png", width = 8, height = 8, units = "in")
+
+
+#knitr::include_graphics(paste0(IMAGES,Sys.Date(),"_","wfj_industries",".svg"))
+
+ggplotly(la_cc_rate_bar,tooltip = "text") %>% 
+  ggla_plotly_settings()    %>% 
+  layout(title = list(text = paste0("<b>","Change in claimant rate (16-64) by local authority","</b>",
+                                    "<br>",
+                                    "<sup>",
+                                    paste0("Non-seasonally adjusted, percentage point change between March 2020 and ", cc_newmonth),
+                                    "</sup>",
+                                    "<br>"),
+                      font = list(size = 22),
+                      y = .95, xref = "plot"),
+         xaxis = list(tickfont = list(size = 14), showgrid=TRUE),
+         yaxis = list(tickfont = list(size = 12), showgrid=FALSE),
+         legend = list(font = list(size = 14),title=list(text="")),
+         margin = list(l = 160)) %>% 
+  reverse_legend_labels()
+
+
+la_bar_ratecap <- paste0("Source: Claimant count by sex and age (Nomis) – data is not seasonally adjusted.")
+
+```
+
+
+<hr  width="100%" style="background-color: rgb(134,139,142);height: 1.0px;margin: 0;"/>
+
+<br/>
+
+```{r cc_la_age stats 2, echo=FALSE}
+# Produce stats on borough*age changes in claimant count
+
+set.seed(1000) #for reproducibility of jitter function
+
+la_age_cc_data <- cc_changes_data %>% 
+  filter(date==max(date) & measure_name=="claimant_count" & sex_name=="Total" & 
+           (age_name %in% c("Aged 16-24","Aged 50+","Aged 25-49")) &
+           ((is_la==1 & geography_name!="City of London") | geography_name %in% c("London","United Kingdom"))) %>% 
+  select(c(date:p_change_since_mar20,is_la)) %>%  
+  mutate(jit_age = jitter(as.numeric(factor(rev(age_name)))),# Jitter to scatter bubble slightly around category
+         geo_cat = case_when(is_la==1 ~ "Boroughs",
+                             geography_name=="London" ~"London",
+                             geography_name=="United Kingdom" ~ "UK")) 
+
+high_1624_la_name <- la_age_cc_data %>% filter(age_name=="Aged 16-24" & is_la==1) %>%
+  filter(p_change_since_mar20==max(p_change_since_mar20)) %>% 
+  pull(geography_name)
+
+high_1624_la_p <- perc_form(la_age_cc_data %>% filter(age_name=="Aged 16-24" & is_la==1) %>%
+  filter(p_change_since_mar20==max(p_change_since_mar20)) %>% 
+  pull(p_change_since_mar20),d=0)
+
+high_2549_la_name <- la_age_cc_data %>% filter(age_name=="Aged 25-49" & is_la==1) %>%
+  filter(p_change_since_mar20==max(p_change_since_mar20)) %>% 
+  pull(geography_name)
+
+high_2549_la_p <- perc_form(la_age_cc_data %>% filter(age_name=="Aged 25-49" & is_la==1) %>%
+  filter(p_change_since_mar20==max(p_change_since_mar20)) %>% 
+  pull(p_change_since_mar20),d=0)
+
+high_50_la_name <- la_age_cc_data %>% filter(age_name=="Aged 50+" & is_la==1) %>%
+  filter(p_change_since_mar20==max(p_change_since_mar20)) %>% 
+  pull(geography_name)
+
+high_50_la_p <- perc_form(la_age_cc_data %>% filter(age_name=="Aged 50+" & is_la==1) %>%
+  filter(p_change_since_mar20==max(p_change_since_mar20)) %>% 
+  pull(p_change_since_mar20),d=0)
+
+```
+
+## Changes by age group
+
+<br/>
+
+The change in claimant count by age group varies significantly across local authorities. Since March 2020 (excl. City of London):
+
+- Aged 16-24: `r high_1624_la_name` saw the highest percentage change at `r high_1624_la_p`%.
+
+- Aged 25-49: `r high_2549_la_name` saw the highest percentage change at `r high_2549_la_p`%.
+
+- Aged 50+: `r high_50_la_name` saw the highest percentage change at `r high_50_la_p`%.
+
+
+<a href="#top">Back to top</a>
+
+```{r cc bubble chart bar rate by LA, echo=FALSE,fig.cap = la_bubble_cap, out.width='100%'}
+
+highlight_colour <- gla_pal(gla_theme = "default",palette_name = "brand", main_colours="red",  n = 1) # for highlighting individiual points
+
+pal <- gla_pal(gla_theme = "default", palette_type = "highlight", n = c(2,1)) #for the chart only two highlight colours needed
+
+
+
+age_cats <- unique(la_age_cc_data$age_name)
+
+max_p_change_axis_value <- ceiling(max(la_age_cc_data$p_change_since_mar20)/100)*100
+
+la_bubble_change_chart <- la_age_cc_data %>% 
+  highlight_key(~geography_name,"Highlight a borough") %>% # For highlighting bubble
+  ggplot(aes(x = p_change_since_mar20,
+             y = age_name,
+             fill=as.factor(geo_cat),
+             text = paste(geography_name,"\n",
+                          age_name, "\n",
+                          "Change: ", perc_form(p_change_since_mar20,d=0),"%", "\n",
+                          paste0("Count, ",cc_newmonth_abr,": "), value_form(measure_value,s=signif_thous),"\n",
+                          sep = ""))) +
+  geom_point(aes(x=p_change_since_mar20, y=jit_age,size=1),
+             shape=16,
+             stroke=0,
+             alpha=.5)+
+  geom_vline(aes(xintercept=0), colour="gray45") +
+  scale_fill_manual(values=rev(pal), aesthetics = "fill")+
+  scale_y_discrete(breaks =1:length(age_cats) ,
+                   labels=rev(age_cats), #youngest at top so should be reversed
+                   limits = seq(1:length(age_cats)))+
+  scale_x_continuous(limits = c(0, max_p_change_axis_value), labels = dollar_format(prefix = "", 
+                                                                suffix = "%", 
+                                                                largest_with_cents = 1)) +
+  theme_set(theme_gla(gla_theme = "default", y_label_length=100)) + #GLA theme and removes lines below y-axis labels
+  theme(panel.grid.major.y = element_blank(),
+        panel.grid.minor.y = element_blank(),
+        panel.grid.major.x = element_line( size=.5 )) + 
+  labs(title = paste0("Change in claimant count by local authority and age group"),
+       subtitle = paste0("Non-seasonally adjusted, percentage change between March 2020 and ", cc_newmonth),
+       caption = "\nSource:  Claimant count by sex and age (Nomis) – data is not seasonally adjusted.")+
+  theme(plot.caption = element_text(color = rgb(166,166,166,maxColorValue = 255)))
+
+ggsave(paste0(IMAGES,Sys.Date(),"_","la_bubble",".svg"), device = "svg", width = 8, height = 8, units = "in")
+ggsave(paste0(IMAGES,Sys.Date(),"_","la_bubble",".png"), device = "png", width = 8, height = 8, units = "in")
+
+ggplotly(la_bubble_change_chart,tooltip = "text")%>% 
+  ggla_plotly_settings()    %>% 
+  layout(title = list(text = paste0("<b>","Change in claimant count by local authority and age group","</b>",
+                                    "<br>",
+                                    "<sup>",
+                                    paste0("Non-seasonally adjusted, percentage change between March 2020 and ", cc_newmonth),
+                                    "</sup>",
+                                    "<br>"),
+                      font = list(size = 22),
+                      y = .95, xref = "plot"),
+         xaxis = list(tickfont = list(size = 14), showgrid=TRUE),
+         yaxis = list(tickfont = list(size = 12), showgrid=FALSE),
+         legend = list(font = list(size = 14),title=list(text="")),
+         margin = list(l = 50)) %>% 
+  highlight(color=highlight_colour,on = "plotly_click",
+            off = "plotly_doubleclick",
+            selectize=TRUE,opacityDim=0.9,
+            selected = attrs_selected(showlegend = FALSE)) %>% 
+  reverse_legend_labels()
+
+
+
+  la_bubble_cap <- paste0("Source: Claimant count by sex and age (Nomis) – data is not seasonally adjusted.","<br>","<br>", "Note: Excludes City of London")
+
+```
+
+<hr  width="100%" style="background-color: rgb(134,139,142);height: 1.0px;margin: 0;"/>
+
+<br/>
+
+## Claimant data by sub-region {.tabset}
+
+<br/>
+
+The tables below provide detailed breakdowns of claimant count statistics for each London local authority, grouped by their respective London sub-regional partnership.
+ 
+The ranks are assigned across all local authorities rather than within the sub-regional partnership.
+
+<a href="#top">Back to top</a>
+
+```{r tables, echo=FALSE, out.width='100%'}
+
+
+
+# We should make it interactive, but make defaults based on our standard, i.e.
+# actual count, claimant rate and claimants aged 16-24 main groupings
+# changes by month and from march 2020
+# rank of borough by number of claimants
+  
+  cc_prev_month <- (cc_newdate)-months(1) #Used to save previous month's count
+  cc_prev_month_abr <- format(cc_prev_month,"%b %y")
+  cc_mar20_abr <- format(as.Date("2020-03-01"),"%b %y")
+  
+  
+  cc_data_cleaned <- cc_changes_data %>% 
+    mutate(measure_simple=recode(measure_name,
+                                 "claimants_as_a_proportion_of_economically_active_residents_aged_16"="rate_econ_active_16",
+                                 "claimants_as_a_proportion_of_residents_aged_16_64"="rate_resid_16_64",
+                                 "claimants_as_a_proportion_of_the_workforce"="rate_workforce"),
+           age_simple=sub("\\+","_",sub("All categories: Age ","",sub("-","_",sub("Aged ","",age_name)))))
+
+  table_format <- cc_data_cleaned %>% 
+    mutate(measure_simple = case_when( date==cc_prev_month ~ paste0(measure_simple,"_prev"),
+                                       date==as.Date("2020-03-01") ~ paste0(measure_simple,"_mar20"),
+      TRUE ~ measure_simple))  %>% 
+      filter((date==max(date) | (measure_simple %in% c("rate_resid_16_64_prev","rate_resid_16_64_mar20"))) & ##this keeps most recent data and the previous month's claim rate
+               age_name %in% c("Aged 18-24","All categories: Age 16+")) 
+# For now we only need the rate based on 16_64, but keep code above if needed later
+  
+  borough_ranks <- table_format %>% #Find rankings based on most recent counts
+    filter(is_la==1 & measure_simple %in% c("claimant_count","rate_resid_16_64")) %>% 
+    group_by(sex_name,age_name,measure_simple) %>% 
+    select(sex_name,age_name,geography_name,measure_value,measure_simple) %>% 
+    mutate(rank_in_group=rank(desc(measure_value),ties.method="first")) %>% 
+    arrange(sex_name,age_name,measure_simple,rank_in_group) %>% 
+    select(-c(measure_value))
+  
+  table_format_reshaped <- table_format %>%
+    filter(measure_simple %in% c("claimant_count","rate_resid_16_64","rate_resid_16_64_mar20")) %>%
+    select(-c(yoy_change,yoy_percentage_change)) %>% 
+    merge(borough_ranks,by=c("sex_name","age_name","geography_name","measure_simple"),all=TRUE) %>% #merge with rankings
+    merge(lon_subregion_map,by="geography_name",all=TRUE) %>% #merge with sub-regions
+    pivot_wider(id_cols=c(geography_name,sex_name,subregional_partnership),
+                names_from = c(measure_simple,age_simple),
+                values_from = c(measure_value:mom_p_change,rank_in_group),
+                names_sep = "@") 
+  
+  table_col_order <- c("geography_name",
+                       "measure_value@claimant_count@16_","rank_in_group@claimant_count@16_", #claim count for 16+
+                       "mom_d_change@claimant_count@16_","mom_p_change@claimant_count@16_",
+                       "d_change_since_mar20@claimant_count@16_","p_change_since_mar20@claimant_count@16_",
+                       "measure_value@rate_resid_16_64_mar20@16_","measure_value@rate_resid_16_64@16_","rank_in_group@rate_resid_16_64@16_", #claimant rate
+                       # "measure_value@claimant_count@18_24","rank_in_group@claimant_count@18_24", #claim count for 16-24
+                       # "mom_d_change@claimant_count@18_24","mom_p_change@claimant_count@18_24",
+                       # "d_change_since_mar20@claimant_count@18_24","p_change_since_mar20@claimant_count@18_24",
+                       "sex_name","subregional_partnership") #for filtering
+  
+  table_format_slim <- table_format_reshaped[,table_col_order] %>% 
+    add_row() %>% 
+    mutate(row_order=case_when(geography_name=="United Kingdom" ~ 1,
+                               geography_name=="London" ~ 2,
+                               geography_name %in% subregions_vector ~ 3,
+                               is.na(geography_name) ~ 4,
+                               TRUE ~ 9),
+           subregional_partnership = case_when(geography_name %in% subregions_vector ~ geography_name,
+                                               TRUE ~ subregional_partnership)) %>% #For subregion rows
+    arrange(row_order, geography_name)
+  
+  #----- Create separate tables for each sub-regional partnership
+  
+  for (subr in subregions_vector) {
+    
+    df_name <- paste0("totals_table_out_",sub(" ","_",subr))
+    table_name <- paste0("reactable_",sub(" ","_",subr))
+    
+    df_temp <- table_format_slim %>% 
+      filter(sex_name=="Total" | is.na(sex_name)) %>%  #the latter keeps the empty row
+      filter(subregional_partnership %in% c(subr,NA)) %>% 
+      select(-c(row_order,subregional_partnership,sex_name)) %>% 
+      mutate(across(contains("p_change"),
+                    ~ case_when(!is.na(.) ~ perc_form(.,d=0))), #formatting values in table
+             across(contains("d_change"),
+                    ~ case_when(!is.na(.) ~value_form(.,s=9))),
+             across(contains("measure_value@claimant_count"),
+                    ~ case_when(!is.na(.) ~value_form(.,s=9))),
+             across(contains("measure_value@rate"),
+                    ~ case_when(!is.na(.) ~perc_form(.,d=1)))
+             ) %>% 
+      mutate(sort_order=row_number()) %>% #to allow resetting the sorting
+      relocate(sort_order)
+    
+    table_temp <- reactable(df_temp, #Settings for the tables
+                            pagination = FALSE,
+                            wrap = TRUE,
+                            striped = TRUE,
+                            defaultColDef = colDef(
+                              align = "right",
+                              width = 68,
+                              headerStyle = list(align="center"),
+                              sortNALast = TRUE
+                              ),
+                            style=list(fontSize=14,fontFamily="Arial"),
+                            highlight = TRUE,
+                            #defaultSorted = "sort_order",
+                            rowStyle = function(index) {
+                              if (index %in% c(1:4)) list(background = "white"
+                                                          #fontWeight="bold"
+                                                          )
+                            },
+                            columns = list( #the below gives proper names to columns and formats
+                              "sort_order" = colDef(name = knitr::asis_output("\U25BC"),
+                                                    style = list(color=rgb(0,0,255,alpha=0,max=255)),
+                                                    headerStyle = list(color="black"),
+                                                    width = 40),
+                              "geography_name" = colDef(name = "",width = 160,filterable = FALSE),
+                              "measure_value@claimant_count@16_"= colDef(name = "Number",width = 80),
+                              "rank_in_group@claimant_count@16_"= colDef(name = "(rank)",
+                                                                         style = list(color="gray"),
+                                                                         headerStyle = list(color="gray"),
+                                                                         format = colFormat(prefix = "(", suffix = ")")),  
+                              "mom_d_change@claimant_count@16_"= colDef(name = paste0(cc_prev_month_abr,"-",cc_newmonth_abr,"\n","change (level)")
+                                                                        ,width = 100),
+                              "mom_p_change@claimant_count@16_"= colDef(name = "change (%)",
+                                                                        format = colFormat(suffix = "%")), 
+                              "d_change_since_mar20@claimant_count@16_"= colDef(name = paste0("Mar 20-",cc_newmonth_abr,"\n","change (level)")
+                                                                                ,width = 100),
+                              "p_change_since_mar20@claimant_count@16_"= colDef(name = "change (%)",
+                                                                        format = colFormat(suffix = "%")), 
+                              "measure_value@rate_resid_16_64_mar20@16_"= colDef(name = cc_mar20_abr,
+                                                                        format = colFormat(suffix = "%")),
+                              "measure_value@rate_resid_16_64@16_"= colDef(name = cc_newmonth_abr,
+                                                                        format = colFormat(suffix = "%")), 
+                              "rank_in_group@rate_resid_16_64@16_"= colDef(name = "(rank)",
+                                                                         style = list(color="gray"),
+                                                                         headerStyle = list(color="gray"),
+                                                                         format = colFormat(prefix = "(", suffix = ")"))
+                              ),
+                            columnGroups = list( #Providers column group names
+                              # colGroup(name = "Geography",
+                              #          columns = "geography_name"),
+                              colGroup(name = "Actual claimant count",
+                                       columns=c("measure_value@claimant_count@16_","rank_in_group@claimant_count@16_",
+                                                 "mom_d_change@claimant_count@16_","mom_p_change@claimant_count@16_",
+                                                 "d_change_since_mar20@claimant_count@16_","p_change_since_mar20@claimant_count@16_")),
+                              colGroup(name = "Claimant rate (16-64)",
+                                       columns=c("measure_value@rate_resid_16_64_mar20@16_","measure_value@rate_resid_16_64@16_","rank_in_group@rate_resid_16_64@16_"))
+                              )
+                            )
+    assign(df_name,df_temp) #give dynamic name
+    assign(table_name,table_temp) #give dynamic name
+    
+    remove(df_temp)
+    remove(df_name)
+    remove(table_temp)
+    remove(table_name)
+  }
+  
+  remove(subr)
+  
+  
+  subr_table_cap <- paste0("Source: Claimant count by sex and age (via Nomis) – data is not seasonally adjusted and the figures are rounded to the nearest 5.","<br>","<br>",
+                 "Notes: ",
+                 "Local authorities are ranked within London overall (not by sub-region); claimant rates for sub-regions have been calculated using aggregated local authority data.")
+  
+```
+
+### Central London Forward
+
+``` {r table CLF, echo=FALSE,fig.cap = subr_table_cap, out.width='100%'}
+
+`reactable_Central_London Forward`
+
+```
+
+### Local London
+
+``` {r table LL, echo=FALSE,fig.cap = subr_table_cap, out.width='100%'}
+
+`reactable_Local_London`
+
+```
+
+### South London Partnership
+
+``` {r table SLP, echo=FALSE,fig.cap = subr_table_cap, out.width='100%'}
+
+`reactable_South_London Partnership`
+
+
+```
+
+### West London Alliance
+
+``` {r table WLA, echo=FALSE,fig.cap = subr_table_cap, out.width='100%'}
+
+`reactable_West_London Alliance`
+
+
+```
+
+<br/>
+<br/>
+
+</font>
+
+::: {.tocify-extend-page data-unique="tocify-extend-page" style="height: 0;"}
+:::

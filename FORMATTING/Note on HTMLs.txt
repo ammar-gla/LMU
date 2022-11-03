@@ -1,0 +1,3 @@
+Opening the HTMLs in this folder will not look as it will in the final markdown.
+Since we are only using paths relative to main folder in all code, the code in these
+sub-HTMLs refer to this current subfolder from the POV of the main code, not these HTMLs.

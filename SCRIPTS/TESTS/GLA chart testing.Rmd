@@ -1,0 +1,466 @@
+---
+title: "GLA chart testing"
+output:
+  html_document:
+    toc: true
+    css: 'Y:\Labour Market Update R Project\MARKDOWN\GLAstyle.css'
+    
+---
+```{r, echo=FALSE}
+
+  ### Paths
+wd <- setwd("Y:\\Labour Market Update R Project\\MARKDOWN")
+INPUT <- paste0(wd,"/INPUT/")
+INTERMEDIATE <- paste0(wd,"/INTERMEDIATE/")
+OUTPUT <- paste0(wd,"/OUTPUT/")
+MARKDOWN_IMAGES <- paste0(wd,"/IMAGES/")
+
+
+```
+
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE,scipen=999)
+knitr::opts_chunk$set(warning = FALSE, message = FALSE) 
+
+#################################################################
+###  Load packages and set paths
+#################################################################
+
+devtools::install_github("Greater-London-Authority/gglaplot")
+#devtools::install_github("Greater-London-Authority/ldndatar", auth_token = "96e66bb601f49f62f0bb9bdcb73a849ece358ad1")
+remotes::install_github("wilkelab/ggtext")
+
+
+library("knitr")
+library("tidyverse")
+library("ggplot2")
+library("ggthemes")
+library("nomisr")
+library("devtools")
+library("remotes")
+library("scales")
+library("gglaplot")
+library("data.table")
+library("janitor")
+library("lubridate")
+library("readr")
+library("leaflet")
+library("rgdal")
+#library("ldndatar")
+library("ggrepel")
+library("plotly")
+library("magrittr")
+library("sf")
+
+#################################################################
+### Functions and data download
+#################################################################
+
+perc_form = function(x, d=1) sprintf(paste0("%1.",d,"f"), x) 
+
+  ### Downloads
+
+### Download PAYE data, clean and save
+  
+  raw_paye <- download.file( url = "https://www.ons.gov.uk/file?uri=/employmentandlabourmarket/peopleinwork/earningsandworkinghours/datasets/realtimeinformationstatisticsreferencetableseasonallyadjusted/current/rtistatisticsreferencetableseasonallyadjusted3.xlsx",
+                             destfile = paste0(INPUT,Sys.Date(),"_raw_paye.xlsx"),
+                             mode = "wb")
+  
+  paye_stats <- readxl::read_excel(path = paste0(INPUT,Sys.Date(),"_raw_paye.xlsx"), sheet = "7. Employees (NUTS1)", skip = 6) %>% 
+                  select( Date, London, UK) %>%
+                  clean_names() %>% 
+                  mutate( new_date = dmy(paste0("01",date)),
+                          lon_change_since_ = case_when( new_date <= as.Date("2020-02-01") ~ NaN,
+                                                        new_date > as.Date("2020-02-01") ~ london - london[ new_date == "2020-02-01"]),
+                          lon_percentage_change_since_feb20 = case_when( new_date <= as.Date("2020-02-01") ~ NaN,
+                                                        new_date > as.Date("2020-02-01") ~ 100*(london - london[ new_date == "2020-02-01"])/london[ new_date == "2020-02-01"]),
+                          lon_month_change = case_when( new_date - min(new_date) < 365 ~ NaN,
+                                                                    new_date - min(new_date) > 365 ~ 
+                                                                      (london - lag(london, n = 1))),
+                          lon_month_percentage_change = case_when( new_date - min(new_date) < 365 ~ NaN,
+                                                                    new_date - min(new_date) > 365 ~ 
+                                                                      100*(london - lag(london, n = 1))/lag(london, n = 1)),
+                          uk_change_since_ = case_when( new_date <= as.Date("2020-02-01") ~ NaN,
+                                                           new_date > as.Date("2020-02-01") ~ uk - uk[ new_date == "2020-02-01"]),
+                          lon_annual_change = case_when( new_date - min(new_date) < 365 ~ NaN,
+                                                                    new_date - min(new_date) > 365 ~ 
+                                                                      (london - lag(london, n = 12))),
+                          lon_annual_percentage_change = case_when( new_date - min(new_date) < 365 ~ NaN,
+                                                                    new_date - min(new_date) > 365 ~ 
+                                                                      100*(london - lag(london, n = 12))/lag(london, n = 12)),
+                          uk_annual_percentage_change = case_when( new_date - min(new_date) < 365 ~ NaN,
+                                                                    new_date - min(new_date) > 365 ~ 
+                                                                      100*(uk - lag(uk, n = 12))/lag(uk, n = 12)))
+  
+  paye_nuts2_stats <- readxl::read_excel(path = paste0(INPUT,Sys.Date(),"_raw_paye.xlsx"), sheet = "11. Employees (NUTS2)", skip = 6) %>% 
+    select( Date, "Inner London - West",	"Inner London - East",	"Outer London - East and North East",	"Outer London - South",	"Outer London - West and North West", UK) %>%
+    mutate( new_date = dmy(paste0("01",Date))) %>% 
+    pivot_longer(cols="Inner London - West":UK,names_to = "area", values_to = "emp_level") %>% 
+    group_by(area) %>% 
+    mutate( 
+      change_perc_since_20 = case_when( new_date <= as.Date("2020-02-01") ~ NaN,
+                                      new_date > as.Date("2020-02-01") ~ 100*(emp_level - emp_level[ new_date == "2020-02-01"])/(emp_level[ new_date == "2020-02-01"])),
+      annual_change = case_when(new_date - min(new_date) < 365 ~ NaN,
+                                      new_date - min(new_date) > 365 ~ 100*(emp_level - lag(emp_level, n= 12))/lag(emp_level, n=12))) %>% 
+    clean_names()
+  
+  fwrite( paye_stats, file = paste0(INTERMEDIATE,Sys.Date(),"_paye.csv"), na = "NaN")
+  
+  # Mapping coordinates
+  London_LA_codes <-readxl::read_excel(path = paste0(INPUT,"London borough codes.xlsx"), sheet = "Codes") %>% clean_names()
+  
+  # LA level PAYE data
+   paye_LA_stats <- readxl::read_excel(path = paste0(INPUT,"2021-09-30_raw_paye.xlsx"), sheet = "19. Employees (LA)", skip = 5) %>% 
+    select( Date, "City of London", "Barking and Dagenham", "Barnet", "Bexley", "Brent", "Bromley", "Camden", "Croydon", "Ealing", "Enfield", "Greenwich", "Hackney", "Hammersmith and Fulham", "Haringey", "Harrow", "Havering", "Hillingdon", "Hounslow", "Islington", "Kensington and Chelsea", "Kingston upon Thames", "Lambeth", "Lewisham", "Merton", "Newham", "Redbridge", "Richmond upon Thames", "Southwark", "Sutton", "Tower Hamlets", "Waltham Forest", "Wandsworth", "Westminster") %>% 
+    mutate( new_date = dmy(paste0("01",Date))) %>% 
+    pivot_longer(cols="City of London":"Westminster",names_to = "area", values_to = "emp_level") %>% 
+    group_by(area) %>% 
+    mutate( 
+      change_perc_since_feb20 = case_when( new_date <= as.Date("2020-02-01") ~ NaN,
+                                      new_date > as.Date("2020-02-01") ~ 100*(emp_level - emp_level[ new_date == "2020-02-01"])/(emp_level[ new_date == "2020-02-01"])),
+      change_feb20_cat = cut(change_perc_since_feb20,c(-12,-9,-6,-3,0,3,6,9,12),labels=c("-12 to -9","-9 to -6","-6 to -3","-3 to 0","0 to 3","3 to 6","6 to 9","9 to 12")), #UPdate the ranges as needed
+      annual_change = case_when(new_date - min(new_date) < 365 ~ NaN,
+                                      new_date - min(new_date) > 365 ~ 100*(emp_level - lag(emp_level, n= 12))/lag(emp_level, n=12))) %>% 
+    clean_names() %>%  merge(London_LA_codes,by='area')
+
+
+  ### Define GLA line chart function
+  
+  GLALineChart <- function( data_set = lfs_stats, ### This function has been written to work specifically with the NM_59_1 dataset
+                        lfs_or_claims = "lfs",
+                        x_var = date, ### Assumed that this will be a line chart with dates on the x-axis
+                        y_var = NULL, ### See document "[today's date]colnames.csv" for variables available for charting
+                        geography = c("London", "United Kingdom"),
+                        suffix = "%",
+                        y_limits = c(0,100),
+                        nudge_y = NULL,
+                        title = NULL,
+                        subtitle = paste0("Latest data for period ", new_release),
+                        caption = "",
+                        chart_name = NULL) {
+      
+    pal <- gla_pal(gla_theme = "default", palette_type = "highlight", n = c(1, 1))
+    theme_set(theme_gla(gla_theme = "default"))
+    
+    ### Create dataset for charting
+    
+    if( lfs_or_claims == "lfs") {
+    
+    for_charting <- data_set %>% 
+      filter( geography_name %in% geography & value_type_name == "Level" & sex_name == "Total" & measures == 20207)
+    } else {
+    for_charting <- data_set %>% 
+      filter( geography_name %in% geography & sex_name == "Total" & !is.na({{y_var}}))
+    }
+    ### Set x-axis format
+  
+    ### Plot charts
+    
+    new_release <- for_charting$date_name[for_charting$date == max(for_charting$date)]
+    
+    glaplot <- for_charting %>%
+      ggplot(mapping = aes(x = {{x_var}}, y = {{y_var}}, 
+                           colour = geography_name, group = geography_name)) +
+      ggla_line(aes(size= geography_name)) +
+      scale_size_manual(values = c(4 * mm_to_pt, 2 * mm_to_pt)) +
+      scale_colour_manual(values = pal) +
+      ggla_highlight(filter_type = "end") +
+      ggla_highlight(mapping = aes(label = paste0({{y_var}}, "%")),
+                     geom = GeomGLATextHighlight, filter_type = "end",  size = 4.5,
+                     position = position_nudge(y = nudge_y),check_overlap = TRUE)+
+      coord_cartesian(clip = 'off') +
+      scale_y_continuous(expand = c(0, 0), labels = dollar_format(prefix = "", 
+                                                                  suffix = suffix, 
+                                                                  largest_with_cents = 1), 
+                                                                  limits = y_limits) +
+      scale_x_date( date_breaks = "2 months",
+                    date_labels = "%b'%y",
+                    expand = expansion( mult = c(0.1,0.02))) +
+      theme(plot.margin = unit(c(1,1,1,1), "cm"))+
+      labs(title = title,
+           subtitle = subtitle,
+           caption = caption) +
+      theme(plot.caption = element_text(color = rgb(166,166,166,maxColorValue = 255)))
+    
+    ggsave( paste0(MARKDOWN_IMAGES,Sys.Date(),"_",chart_name,".svg"), device = "svg", width = 8, height = 8, units = "in") 
+    
+    return(glaplot)
+    
+  }
+
+```
+
+```{r results="asis", echo=FALSE}
+# This code is needed to force background of Leaflet map to be white
+cat("
+<style>
+.leaflet-container {
+    background: #FFF;
+}
+</style>
+")
+```
+
+``` {r paye borough map, echo=FALSE,fig.cap = cap}
+
+# Produces interactive map of boroughs with change in payrolled employees
+
+#Read the shape file from the W drive
+boroughs <- readOGR(dsn = "Y:/Labour Market Update R Project/London map data/statistical-gis-boundaries-london/ESRI",
+                    layer = "London_Borough_Excluding_MHW",
+                    verbose = FALSE) %>%
+  spTransform(CRS("+proj=longlat +datum=WGS84"))
+
+# Prepare data
+paye_LA_stats_geo <- paye_LA_stats %>%
+  mutate(tooltip= paste("Change: ", perc_form(change_perc_since_feb20),"%", "\n", sep = "")) %>% 
+  rename(GSS_CODE=gss_code, value=change_perc_since_feb20) %>% 
+  filter(new_date == max(new_date)) 
+
+
+#Make a function to make things easier
+#data is a dataframe with GSS_CODE and value columns
+
+map_function <- function(data, polygons, bins, palette, map_title){
+
+  #Join data to polygons
+  polygons@data <- left_join(polygons@data, data, by="GSS_CODE")
+  
+  #Create the palette
+  pal <- colorBin(palette, domain = polygons$value, bins = bins)
+  
+  #Make tool tip
+  labels <- sprintf(
+    "<strong>%s</strong><br/>%s",
+    polygons$NAME, polygons$tooltip
+  ) %>% lapply(htmltools::HTML)
+
+  
+  #Make map
+  map_output <- leaflet() %>%
+    addPolygons(data = polygons,
+                fillColor = ~pal(value),
+                weight = 1,
+                opacity = 1,
+                color = "grey",
+                fillOpacity = 0.8,
+                label = labels,
+                labelOptions = labelOptions(
+                  style = list("font-weight" = "normal", padding = "3px 8px"),
+                  textsize = "15px",
+                  direction = "auto")) %>%
+    addLegend(pal = pal, values = polygons$value, opacity = 0.8,
+              title = map_title,
+              position = "bottomright", labFormat = labelFormat(between = " to "))
+  
+  return(map_output)
+}
+
+# NB: the bins below need to change depending on the values mapped
+bins <- c(-12,-9,-6,-3, 0, 3,6, 9, 12)
+map_palette <- gla_pal(palette_type = "diverging", main_colours = c("red","blue"), n = 8, remove_margin = "both")
+map_title <- paste0("Change since","<br>" ,"February 2020 (%)")
+
+#Caption
+cap <- paste0("Source: HM Revenue and Customs – Pay As You Earn Real Time Information. Contains Ordnance Survey data Crown copyright and database right [2015]","<br>","<br>", "Note: Estimates are based on where employees live.")
+
+#Run Map
+map_function(paye_LA_stats_geo, boroughs, bins, map_palette, map_title)
+
+
+
+```
+
+
+``` {r, include=FALSE,eval=FALSE, fig.cap = cap}
+
+# Generate a diverging palette - the edges get a bit dark so the remove margins
+pal <- gla_pal(gla_theme = "default", palette_type = "diverging",
+               main_colours = c("red","blue"), n = 6, remove_margin = "both")
+
+map_la_paye_dat <- paye_LA_stats_geo  %>% filter(new_date == max(new_date)) %>% mutate(tooltip= paste(area, "\n","Change: ", perc_form(change_perc_since_feb20),"%", "\n", sep = "")) 
+
+map_la_paye<-  ggplot(data=map_la_paye_dat) + 
+  geom_sf(mapping=aes(geometry = geometry, fill = change_feb20_cat, text=tooltip),color = gla_default$background) +
+  scale_fill_manual(values = pal)
+
+#map_la_paye
+
+
+plotly_plot <- ggplotly(map_la_paye, tooltip = "text", width = 800, height = 500) %>% 
+   ggla_plotly_layout(gla_theme = "default",
+                       x_axis_title = FALSE, y_axis_title = FALSE,
+                       xgridlines = FALSE, legend = TRUE,
+                       base_size = 14) %>% 
+  layout(title = list(text = paste0("<b>","Payrolled employees, change since February 2020","</b>",
+                                    "<br>",
+                                    "<sup>",
+                                    paste0("Latest data for period ", paye_LA_stats_geo$date[paye_LA_stats_geo$new_date == max(paye_LA_stats_geo$new_date)]),
+                                    "</sup>",
+                                    "<br>"),
+                      font = list(size = 24),
+                      y = 110, xref = "plot"),
+         legend = list(font = list(size = 15),y=0.9)) 
+
+cap <- paste0("Source: HM Revenue and Customs – Pay As You Earn Real Time Information. Contains Ordnance Survey data Crown copyright and database right [2015]","<br>","<br>", "Note: Estimates are based on where employees live.")
+
+plotly_plot
+
+```
+
+
+``` {r, include=FALSE,eval=FALSE,fig.cap = cap}
+
+# Generate a diverging palette - the edges get a bit dark so the remove margins
+pal <- gla_pal(gla_theme = "default", palette_type = "diverging",
+               main_colours = c("red","blue"), n = 6, remove_margin = "both")
+
+map_la_paye_dat <- paye_LA_stats_geo  %>% filter(new_date == max(new_date)) %>% mutate(tooltip= paste(area, "\n","Change: ", perc_form(change_perc_since_feb20),"%", "\n", sep = "")) %>%  st_as_sf()
+
+map_la_paye<-  ggplot(data=map_la_paye_dat) + 
+  geom_sf(mapping=aes(geometry = geometry, fill = change_feb20_cat, text=tooltip),color = gla_default$background) +
+  scale_fill_manual(values = pal)
+
+#map_la_paye
+
+plotly_plot <- ggplotly(map_la_paye, tooltip = "text", width = 800, height = 500) %>%
+  ggla_plotly_settings() %>% 
+  layout(title = list(text = paste0("<b>","Payrolled employees, change since February 2020","</b>",
+                                    "<br>",
+                                    "<sup>",
+                                    paste0("Latest data for period ", paye_LA_stats_geo$date[paye_LA_stats_geo$new_date == max(paye_LA_stats_geo$new_date)]),
+                                    "</sup>",
+                                    "<br>"),
+                      font = list(size = 24),
+                      y = .95, xref = "plot"),
+         legend = list(font = list(size = 15))) 
+
+cap <- paste0("Source: HM Revenue and Customs – Pay As You Earn Real Time Information. Contains Ordnance Survey data Crown copyright and database right [2015]","<br>","<br>", "Note: Estimates are based on where employees live.")
+
+plotly_plot
+
+plotly_plot %>%
+  style(    # don't apply these style rules to the first trace, which is the background graticule/grid
+    traces = seq.int(2, length(plotly_plot$x$data))
+  ) %>%
+  hide_legend()
+
+
+```
+
+
+# Normal chart displayed below
+```{r PAYE chart, echo=FALSE}
+
+pal <- gla_pal(gla_theme = "default", palette_type = "highlight", n = c(1, 1))
+theme_set(theme_gla(gla_theme = "default"))
+
+paye_stats_chart <- paye_stats %>%
+                    pivot_longer(cols = ends_with("_change"), names_to = "geography", values_to = "change" ) %>%
+                    mutate( geography_name = case_when( grepl("lon",geography) ~ "London",
+                                                        grepl("uk",geography) ~ "United Kingdom")) %>%
+                    mutate(var_type = sub(".*?_",'',geography)) %>% 
+                                      filter( new_date >= "2020-01-01" & var_type == "annual_percentage_change") %>%
+                    ggplot(mapping = aes(x = new_date, y = change,
+                                          colour = geography_name, group = geography_name,
+                           text = paste(
+                          "Geography: ", geography_name, "\n",
+                          "Date: ", format(new_date,'%B %Y'), "\n",
+                          "Change (%): ", perc_form(change), "\n",
+                          sep = ""
+                    ))) +
+                    ggla_line(aes(size= geography_name)) +
+                    scale_size_manual(values = c(4 * mm_to_pt, 2 * mm_to_pt)) +
+                    scale_colour_manual(values = pal) +
+                    ggla_highlight(filter_type = "end") +
+                    ggla_highlight(mapping = aes(label = paste0(format(change, digits = 1),"%")),
+                                   geom = GeomGLATextHighlight, filter_type = "end",  size = 4.5,
+                                   position = position_nudge(y = c(-1.3,+0.5)))+
+                    coord_cartesian(clip = 'off') +
+                    geom_hline(aes(yintercept=0), colour="gray45") +
+                    scale_y_continuous(expand = c(0, 0), labels = dollar_format(prefix = "",
+                                                                                suffix = "%",
+                                                                                largest_with_cents = 1),
+                                       limits = c(-6,5)) +
+                    scale_x_date( date_breaks = "2 months",
+                                  date_labels = "%b'%y",
+                                  expand = expansion( mult = c(0.1,0.02))) +
+                    theme(plot.margin = unit(c(1,1,1,1), "cm"))+
+                    labs(title =  "Payrolled employees, change on previous year",
+                         subtitle = paste0("Latest data for period ", paye_stats$date[paye_stats$new_date == max(paye_stats$new_date)]),
+                         caption = "\nSource: HM Revenue and Customs – Pay As You Earn Real Time Information.\n\nNote: Estimates are based on where employees live.")+
+                    theme(plot.caption = element_text(color = rgb(166,166,166,maxColorValue = 255)))
+
+
+ggsave( paste0(MARKDOWN_IMAGES,Sys.Date(),"_","paye",".svg"), device = "svg", width = 8, height = 8, units = "in")
+
+                     
+knitr::include_graphics(paste0(MARKDOWN_IMAGES,Sys.Date(),"_","paye",".svg"))
+```
+
+# Interactive chart below
+
+```{r PAYE chart2, echo=FALSE,fig.cap = cap }
+
+pal <- gla_pal(gla_theme = "default", palette_type = "highlight", n = c(1, 1))
+theme_set(theme_gla(gla_theme = "default"))
+
+paye_stats_chart2 <- paye_stats %>%
+                    pivot_longer(cols = ends_with("_change"), names_to = "geography", values_to = "change" ) %>%
+                    mutate( geography_name = case_when( grepl("lon",geography) ~ "London",
+                                                        grepl("uk",geography) ~ "United Kingdom")) %>%
+                    mutate(var_type = sub(".*?_",'',geography)) %>% 
+                                      filter( new_date >= "2020-01-01" & var_type == "annual_percentage_change") %>%
+                    ggplot(mapping = aes(x = new_date, y = change,
+                                          colour = geography_name, group = geography_name,
+                           text = paste(
+                          geography_name, "\n",
+                          format(new_date,'%B %Y'), "\n",
+                          "Change: ", perc_form(change),"%", "\n",
+                          sep = ""
+                    ))) +
+                    ggla_line(aes(size= geography_name)) +
+                    scale_size_manual(values = c(4 * mm_to_pt, 2 * mm_to_pt)) +
+                    scale_colour_manual(values = pal) +
+                    #ggla_highlight(filter_type = "end") +
+                    #ggla_highlight(mapping = aes(label = paste0(format(change, digits = 1),"%")),
+                     #              geom = GeomGLATextHighlight, filter_type = "end",  size = 4.5,
+                     #              position = position_nudge(y = c(-1.3,+0.5)))+
+                    coord_cartesian(clip = 'off') +
+                    geom_hline(aes(yintercept=0), colour="gray45") +
+                    scale_y_continuous(expand = c(0, 0), labels = dollar_format(prefix = "",
+                                                                                suffix = "%",
+                                                                                largest_with_cents = 1),
+                                       limits = c(-6,5)) +
+                    scale_x_date( date_breaks = "2 months",
+                                  date_labels = "%b'%y",
+                                  expand = expansion( mult = c(0.1,0.02))) +
+                    theme(plot.margin = unit(c(1,1,1,1), "cm"))+
+                    labs(title =  "Payrolled employees, change on previous year",
+                         subtitle = paste0("Latest data for period ", paye_stats$date[paye_stats$new_date == max(paye_stats$new_date)]),
+                         caption = "\nSource: HM Revenue and Customs – Pay As You Earn Real Time Information.\n\nNote: Estimates are based on where employees live.")+
+                    theme(plot.caption = element_text(color = rgb(166,166,166,maxColorValue = 255)))
+
+
+#knitr::include_graphics(paste0(MARKDOWN_IMAGES,Sys.Date(),"_","paye",".png"))
+
+ggplotly(paye_stats_chart2,tooltip = "text") %>% 
+  ggla_plotly_settings()    %>% 
+  layout(title = list(text = paste0("<b>","Payrolled employees, change on previous year","</b>",
+                                    "<br>",
+                                    "<sup>",
+                                    paste0("Latest data for period ", paye_stats$date[paye_stats$new_date == max(paye_stats$new_date)]),
+                                    "</sup>",
+                                    "<br>"),
+         font = list(size = 24),
+         y = .95, xref = "plot"),
+         xaxis = list(tickfont = list(size = 15)),
+         yaxis = list(tickfont = list(size = 15)),
+         legend = list(font = list(size = 15)),
+         hovermode = "x") 
+
+cap <- paste0("Source: HM Revenue and Customs – Pay As You Earn Real Time Information.","<br>","<br>", "Note: Estimates are based on where employees live.")
+
+```

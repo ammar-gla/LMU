@@ -1,0 +1,4 @@
+The scripts and the project folder have been organised such that all file paths are relative. 
+This means that the entire project folder can be copied anywhere else and all code should still work.
+
+There is currently an exception for the location of the scripts relative to the external HTMLs. The latter define paths relative to the location of the scripts, assuming that the latter are one subfolder down from the main.

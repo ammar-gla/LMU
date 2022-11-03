@@ -1,0 +1,12 @@
+# Ignore all archive folders
+_old/
+
+# Ignore the files in output folders
+/IMAGES/MAIN/**
+/IMAGES/AD_HOC/**
+/INTERMEDIATE/**
+
+# Ignore HTML output files
+/SCRIPTS/*.html
+
+.Rproj.user

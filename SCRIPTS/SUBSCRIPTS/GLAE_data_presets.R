@@ -1,0 +1,29 @@
+#_____________________________________________________________________________
+### Presets for presenting figures etc. ----
+#_____________________________________________________________________________
+
+signif_thous = 3 #How many significant figures to use when figures are in thousands
+signif_mil = 2 # For millions
+signif_perc = 2 #For percentages
+signif_pp = 3 #For percentage points
+
+digits_mil = 1
+digits_perc = 1
+
+### Geographic codes for UK, London and Boroughs.
+### See "Borough codes.csv" in source folder for reference. 
+london_geo_code <- 2013265927
+uk_geo_code <- 2092957697
+eng_geo_code <- 2092957699
+regions_geo_code <- c(2013265926,2013265924,2013265921,2013265922,2013265932,2013265931,2013265928,2013265929,2013265930,2013265925,2013265923)
+boroughs_group <- c(1811939540,1811939541,1811939542,1811939543,1811939544,1811939526,1811939527,1811939545,1811939546,1811939547,
+                    1811939548,1811939528,1811939529,1811939530,1811939549,1811939550,1811939551,1811939552,1811939531,1811939532,1811939553,1811939533,
+                    1811939534,1811939554,1811939535,1811939555,1811939556,1811939536,1811939557,1811939537,1811939558,1811939538,1811939539)
+
+#.............................................................................
+#### London borough geographical codes ----
+#.............................................................................
+
+London_LA_codes <-readxl::read_excel(path = paste0(INPUT,"London borough codes.xlsx"), sheet = "Codes") %>% 
+  clean_names() %>% 
+  rename(geography_name=area)

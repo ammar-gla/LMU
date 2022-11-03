@@ -1,0 +1,198 @@
+/* ---------- TABLE OF CONTENTS ------ */
+
+/* Color of active item */
+.tocify-item.active {
+    background-color: #353d42;
+    border-color: #353d42;
+}
+
+.tocify-item.active:hover {
+    background-color: #9e0062;
+    border-color: #9e0062;
+}
+
+/* Color of non-active text when hovering */
+.tocify-item:hover {
+    color: #9e0062;
+}
+
+/* Thin side border on TOC list */
+.tocify ul {
+  border-right: 1px solid #ccc; 
+  border-left: 1px solid #ccc; 
+}
+
+
+/* ------------- MISC ----------------*/
+
+/* Color of links for tabs - grey when inactive, LDNpurple if active/hover */
+
+.nav a {
+    color: #353d42;
+}
+
+.nav-tabs >li.active > a,
+.nav-tabs >li.active > a:hover,
+.nav-tabs >li.active > a:focus,
+ .nav a:hover,
+ .nav a:active  {
+    color: #9e0062;
+}
+
+.nav-tabs >li.active > a,
+.nav-tabs >li.active > a:hover,
+.nav-tabs >li.active > a:focus,
+a:hover,
+a:active  {
+    color: #9e0062;
+}
+
+/* Data box*/
+.databox {
+  padding: 1em 1em 1em 1em;
+  margin-bottom: 5px;
+  border-radius: 5px;
+  background: #b4d6f2;
+}
+
+/* Info box*/
+.infobox {
+  padding: 1em 1em 1em 5em;
+  margin-bottom: 5px;
+  border-radius: 5px;
+  background: #f5f5f5 5px center/2.5em no-repeat;
+}
+
+.infobox p {
+  margin-bottom:0;
+  font-weight: bold;
+  font-size: 13pt;
+}
+
+.info_symbol {
+  background-image: url("./../FORMATTING/ICONS/more-info.svg");
+}
+
+.caution_symbol {
+  background-image: url("./../FORMATTING/ICONS/circle-exclamation-solid.svg");
+}
+
+/* Quote box*/
+.quotebox {
+  padding: 1em 1em 1em 5em;
+  margin-bottom: 5px;
+  border-radius: 5px;
+  background: 5px center/3.5em no-repeat;
+}
+
+.quotebox p {
+  margin-bottom:0;
+  font-style: italic;
+}
+
+.quote_symbol {
+  background-image: url("./../FORMATTING/ICONS/double-quote-symbol.svg");
+}
+
+/* Input picker for highlight plotly */
+
+.colourpicker,
+.colourpicker.palette-limited.colourpicker-focus
+.colourpicker-input {
+	color: rgb(0,0,0,0) !important;
+}
+
+.colourpicker.element.style {
+	color: rgb(0,0,0,0) !important;
+}
+
+/* Make leaflet map backgrounds white */
+.leaflet-container {
+    background: #FFF;
+}
+
+
+/* --------- Whole document: ------------ */
+.main-container {
+  max-width: 1300px !important;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+body{
+  font-family: 'Arial';
+  font-size: 14pt;
+  color: rgb(53,61,66);
+  line-height: 1.5em;
+}
+
+/* Color the background of selected text */
+::-moz-selection { /* Code for Firefox */
+  color: white;
+  background: #9e0062;
+}
+
+::selection {
+  color: white;
+  background: #9e0062;
+}
+
+foot{
+  font-family: 'Arial';
+  font-size: 12pt;
+  color: rgb(166,166,166);
+  line-height: 1em;
+}
+
+
+p.caption{
+    font-size: 12pt;
+    color: rgb(166,166,166);
+    line-height: 1em;
+}
+
+/* Headers */
+h1,h2,h3,h4,h5,h6{
+  font-size: 20pt;
+  font-family: Arial;
+  color: rgb(53,61,66);
+
+h1, h2, h3 {
+    margin-top: 84px;
+    margin-bottom: 160px;
+}
+
+/* The title and information */
+h1.title {
+  font-size: 20pt;
+  font-family: Arial;
+  color: rgb(53,61,66);
+}
+
+h4.date {
+  font-family: 'Arial';
+  font-size: 14pt;
+  color: rgb(137,137,137);
+}
+
+h4.author {
+  font-family: 'Arial';
+  font-size: 12pt;
+  color: rgb(137,137,137);
+}
+
+
+/* Hyperlinks */
+a {
+  color: #337ab7;
+}
+
+
+
+.header {
+  padding: 60px;
+  text-align: center;
+  background: #353D42
+  color: white;
+  font-size: 30px;
+}

@@ -1,0 +1,176 @@
+---
+title: "<br> Code testing"
+date: "`r format(Sys.Date(),'%B %Y')`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    css:  !expr "here::here('FORMATTING','GLAstyle.css')"
+    includes:
+      in_header: !expr "here::here('FORMATTING','favicon.html')"
+      before_body: !expr "here::here('FORMATTING','header.html')"
+      after_body: !expr "here::here('FORMATTING','footer.html')"
+knit: (function(input, ...) {
+    rmarkdown::render(
+      input,
+      output_file = paste0("Cool clean name",format(Sys.Date(),'%B %Y')),
+      envir = globalenv()
+    )
+  })
+---
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+```
+
+``` {r,include=FALSE}
+
+library(here)
+library(dplyr)
+library(ggplot2)
+library(plotly)
+
+
+### Paths
+INPUT <- here::here("INPUT/")
+INTERMEDIATE <- paste0(here(),"INTERMEDIATE/")
+IMAGES <- paste0(here(),"IMAGES/")
+FORMATTING <- here::here("FORMATTING/")
+
+
+lon_subregion_map <-readxl::read_excel(path = here("INPUT","Sub_regional mapping.xlsx"), sheet = "Mapping")
+  
+  
+set.seed(357)
+xy <- data.frame(letters = rep(c("a", "b", "c"), times = 3),
+                 values = runif(9),
+                 groups = rep(c("group1", "group2", "group3"), each = 3))
+
+#     includes:
+#       before_body: header.html
+#       after_body: footer.html
+#       
+#create a SharedData object for use in the ggplot below, group by 'groups' 
+d <- highlight_key(xy, ~groups )
+
+#create a normal ggplot to fit your needs, but use the SharedData object as data for the chart
+p <- ggplot( d, aes(x = letters, y = values, group = groups)) + theme_bw() + geom_point()
+
+#now ggplotly the newly created ggplot, and add text for the tooltips as needed
+gg <- ggplotly( p, tooltip = "groups" )
+
+
+#set the highlight-options to your liking, and plot...
+highlight( gg, on = "plotly_hover", off = "plotly_deselect", color = "red" )
+
+```
+
+<!-- Summary of findings - MANUALLY ADJUST -->
+
+<hr  width="100%" style="background-color: rgb(134,139,142);height: 1.0px;margin: 0;"/>
+Contact: [Ammar Ljubijankic Kutasi](mailto:ammar.ljubijankic@london.gov.uk)
+
+<br/>
+
+::: {.quotebox .quote_symbol}
+While headline labour market indicators have improved from mid-pandemic, the recovery in London's labour market appears to be slowing. The latest employment rate estimate has fallen on the quarter and inactivity is on the rise.
+<br><br>
+There are also early signs that the reduction in unemployment is stalling: the unemployment rate was virtually unchanged on the previous quarter and the claimant count rate for May did not fall on the previous month for the first time in 2022.
+<br><br>
+Adjusting for inflation, many employees are likely to see a decrease in their pay on the previous year as median pay growth fails to keep pace with rising prices.
+:::
+
+
+<hr  width="100%" style="background-color: rgb(134,139,142);height: 1.0px;margin: 0;"/>
+
+<br/>
+
+
+## Summary of key points
+
+* The most timely estimate of payrolled employees shows an increase of around 9,240, or 0.2%, in London between March and April 2022 and is 0.8% above pre-pandemic (February 2020) levels.
+
+* The employment rate in London was estimated at 75.2% for the three months ending March 2022, down 0.7 percentage points (pp) on the previous quarter and up 0.7pp on the same period in the previous year. London’s employment rate remains close to the UK average (75.7%).
+
+* The unemployment rate continued to fall from its pandemic peak but is still higher than the UK average. London’s unemployment rate was estimated at 4.7%, down 0.4pp on the quarter and down 2.2pp from a year earlier. The UK average was 3.7%.
+
+* London’s inactivity rate (the measure of those not looking and/or not available to work) was estimated at 21.0%. While it remains lower than the UK-wide estimate of 21.4%, it was up 1.1pp on the previous year and up 1.2pp on the previous quarter.
+
+<br>
+
+<a href="#top">Back to top</a>
+
+<hr  width="100%" style="background-color: rgb(134,139,142);height: 1.0px;margin: 0;"/>
+
+<br/>
+
+
+## Don't mind the note
+
+<br/>
+
+* According to official HMRC statistics, there were still around 231,000 London staff on furlough at the [end of September 2021](https://data.london.gov.uk/download/gla-economics-covid-19-labour-market-analysis/a1fdeb85-1918-4b45-a384-6e0cad70b469/Official%20Furlough%20stats%20November%202021%20-%20London%20Datastore.pdf), with a higher furlough take-up rate in the capital when the scheme closed.
+
+* The latest payrolled employee and claimant count estimates for October 2021 provide an early indication of the
+impact of the end of the scheme on the labour market in London.*
+
+* Both measures show relatively steady trends in the latest month, with an increase in the number of employees
+paid through payroll and a small decline in the number of people claiming unemployment related benefits.
+
+* These latest estimates may not yet reflect post-furlough redundancies. For example, according to the [ONS](https://www.ons.gov.uk/employmentandlabourmarket/peopleinwork/employmentandemployeetypes/bulletins/uklabourmarket/latest):
+<div style="margin-left: 1em;">
+‘It is possible those made redundant at the end of the furlough scheme will be included in the RTI data for a few further months, while they work out their notice period.’
+</div>
+
+* However, responses to a recent [ONS business survey](https://www.ons.gov.uk/businessindustryandtrade/business/businessservices/bulletins/businessinsightsandimpactontheukeconomy/4november2021) suggest that only a small share of furloughed employees
+were made redundant recently. Early indications suggest this may also be true for London.
+
+
+<div class="foot">*Note: the latest payrolled employees estimate is based on incomplete information and may be subject to revision. <a href="www.google.com">here</a> </div>
+
+
+<hr  width="100%" style="background-color: rgb(134,139,142);height: 1.0px;margin: 0;"/>
+
+<br/>
+
+## Multiple tabs {.tabset}
+
+### A sub title
+
+Yes.
+
+<hr  width="100%" style="background-color: rgb(134,139,142);height: 1.0px;margin: 0;"/>
+
+<br/>
+
+### Even more sub titles
+
+So much filler text again here. So much filler text again here. So much filler text again here.
+
+So much filler text again here. So much filler text again here. So much filler text again here.
+
+<hr  width="100%" style="background-color: rgb(134,139,142);height: 1.0px;margin: 0;"/>
+
+<br/>
+
+## How many titles do we need
+
+So much filler text again here. So much filler text again here. So much filler text again here.
+
+<hr  width="100%" style="background-color: rgb(134,139,142);height: 1.0px;margin: 0;"/>
+
+<br/>
+
+## This many
+
+So much filler text again here.
+So much filler text again here.
+So much filler text again here.
+So much filler text again here.
+
+<hr  width="100%" style="background-color: rgb(134,139,142);height: 1.0px;margin: 0;"/>
+
+<br/>

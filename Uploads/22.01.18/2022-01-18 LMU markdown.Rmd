@@ -1,0 +1,1601 @@
+---
+title:  |
+    | 
+    | London Labour Market Update
+date: "`r format(Sys.Date(),'%B %Y')`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    css: 'Y:\Labour Market Update R Project\MARKDOWN\GLAstyle.css'
+    includes:
+      in_header: favicon.html
+      before_body: header.html
+      after_body: footer.html
+---
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE,scipen=999)
+knitr::opts_chunk$set(warning = FALSE, message = FALSE) 
+
+#################################################################
+###  Load packages and set paths
+#################################################################
+
+#devtools::install_github("Greater-London-Authority/gglaplot")
+#devtools::install_github("Greater-London-Authority/ldndatar", auth_token = "96e66bb601f49f62f0bb9bdcb73a849ece358ad1")
+#remotes::install_github("wilkelab/ggtext")
+
+# install.packages("extrafont")
+# install.packages('svglite')
+
+#install.packages("rgdal")
+
+library(extrafont)
+library(remotes)
+# remotes::install_version("Rttf2pt1", version = "1.3.8")
+# extrafont::font_import()
+
+
+library("knitr")
+library("tidyverse")
+library("ggplot2")
+library("ggthemes")
+library("nomisr")
+library("devtools")
+library("remotes")
+library("scales")
+library("gglaplot")
+library("data.table")
+library("janitor")
+library("lubridate")
+library("readr")
+#library("ldndatar")
+library("ggrepel")
+library("plotly")
+library("magrittr")
+library("zoo")
+library("kableExtra")
+library("leaflet")
+library("rgdal")
+
+library(flextable)
+library(officer) # for fp_text
+
+library(svDialogs) #for pop-ups
+
+### Paths
+wd <- "Y:\\Labour Market Update R Project\\MARKDOWN"
+setwd(wd)
+INPUT <- paste0(wd,"/INPUT/")
+INTERMEDIATE <- paste0(wd,"/INTERMEDIATE/")
+MARKDOWN_IMAGES <- paste0(wd,"/IMAGES/")
+
+
+### Geographic codes for UK, London and Boroughs.
+### See "Borough codes.csv" in source folder for reference. 
+
+Group <- c(2013265927,2092957697,1811939540,1811939541,1811939542,1811939543,1811939544,1811939526,1811939527,1811939545,1811939546,1811939547,
+           1811939548,1811939528,1811939529,1811939530,1811939549,1811939550,1811939551,1811939552,1811939531,1811939532,1811939553,1811939533,
+           1811939534,1811939554,1811939535,1811939555,1811939556,1811939536,1811939557,1811939537,1811939558,1811939538,1811939539)
+
+################################################################################
+### Presets for presenting figures etc.
+################################################################################
+
+signif_thous = 3 #How many significant figures to use when figures are in thousands
+signif_mil = 2 # For millions
+signif_perc = 2 #For percentages
+signif_pp = 3 #For percentage points
+
+digits_mil = 1
+digits_perc = 1
+
+################################################################################
+### Functions
+################################################################################
+
+  ### Define function to always present percentages with one decimal and figures without decimals
+perc_form = function(x, d=1) sprintf(paste0("%1.",d,"f"), x) 
+
+value_form = function(x,s=2,d= -1) format(signif(round(as.numeric(x), d),s), big.mark=",")
+
+
+  ### Function to make conditional text based on values
+condi_text <- function(x,t=c("increase","noun","rise","growth","up","above")) { #Define names by the positive change
+  if(t=="increase") {y = case_when(x<0 ~ "decreased",
+                            x>0 ~ "increased")
+                            return(y)}
+  else if(t=="noun") {y = case_when(x<0 ~ "a decrease",
+                            x>0 ~ "an increase")
+                            return(y)}
+  else if(t=="rise") {y = case_when(x<0 ~ "fell",
+                            x>0 ~ "rose")
+                            return(y)}
+  else if(t=="growth") {y = case_when(x<0 ~ "shrank",
+                            x>0 ~ "grew")
+                            return(y)}
+  else if(t=="up") {y = case_when(x<0 ~ "down",
+                            x>0 ~ "up")
+                            return(y)}
+  else if(t=="above") {y = case_when(x<0 ~ "below",
+                            x>0 ~ "above")
+                            return(y)}
+  else {return("[NB: wrong value for t]")}
+}
+
+### Function to remove negative sign from character strings (needed as formatted numbers are not numerical)
+abs2 <- function(x) {
+  y = gsub("-","",x)
+  return(y)
+}
+
+################################################################################
+### Downloads and data processing
+################################################################################
+
+  #.............................................................................
+  ### London borough geographical codes
+  #.............................................................................
+  London_LA_codes <-readxl::read_excel(path = paste0(INPUT,"London borough codes.xlsx"), sheet = "Codes") %>% clean_names()
+
+  #.............................................................................
+  ### Fundction for dowloading headline stats
+  #.............................................................................
+
+HeadlineDownload <- function( data_series = "NM_59_1", 
+                              time_period = c("1996-01","latest"), 
+                              save_intermediate = TRUE,
+                              geography = Group) {
+  
+  ### Download both absolute and percentage figures from NOMIS
+  
+  raw_nomis <- nomis_get_data( id = data_series, 
+                               geography = geography,
+                               time = time_period)
+  
+  ### Store downloads as dataframes
+  
+  lfs_stats <- raw_nomis %>% 
+    mutate(DATE = as.Date(paste0(DATE, "-01"))) %>% 
+    filter(MEASURES %in% c(20207,20100) & !is.na(OBS_VALUE)) %>%
+    select( "DATE", "DATE_NAME", "SEX_NAME", "GEOGRAPHY_NAME", "ECONOMIC_ACTIVITY_NAME", "VALUE_TYPE_NAME", "OBS_VALUE","MEASURES","MEASURES_NAME") %>% 
+     pivot_wider( names_from = ECONOMIC_ACTIVITY_NAME, values_from = OBS_VALUE) %>%  
+    clean_names()
+
+  ### Save intermediate dataframes if specified
+  
+  if( save_intermediate == TRUE) {
+    lfs_stats %>% 
+    fwrite(file = paste0(INTERMEDIATE,Sys.Date(),"_LFS_update.csv"))
+
+    }
+  
+  data.table::fwrite( as.data.frame(colnames(lfs_stats)), file = paste0(INTERMEDIATE,"/",Sys.Date(),"_colnames.csv"))
+  
+  return( lfs_stats)
+  
+}
+
+  #.............................................................................
+  ### Download LFS stats, automatically clean and save
+  #.............................................................................
+  
+lfs_stats <- HeadlineDownload( time_period = c("2020-01","latest"))
+
+
+
+ClaimantCountDownload <- function( data_series = "NM_162_1",
+                              time_period = c("1996-01","latest"),
+                              save_intermediate = TRUE,
+                              geography = Group,
+                              line_or_bar = "line") {
+  
+  ### Download the claimant count data from NOMIS
+  
+  raw_nomis <- nomis_get_data(
+                id = data_series, 
+                geography = Group,
+                time = time_period) 
+  
+  ### Clean data
+  
+  claimant_count_stats <- raw_nomis %>% 
+    mutate( DATE = as.Date(paste0(DATE, "-01"))) %>% 
+    filter( !is.na(OBS_VALUE) & MEASURES == 20100) %>% 
+    pivot_wider( names_from = MEASURE_NAME, values_from = OBS_VALUE) %>%
+    clean_names() %>% 
+    select( date, date_name, geography_name, gender_name, age_name, last_col(4):last_col()) %>% 
+    rename( sex_name = gender_name)
+  
+  if( line_or_bar == "line")
+  {
+    claimant_count_stats <- claimant_count_stats %>%
+      filter( age_name == "All categories: Age 16+")
+  }
+  
+  
+  ### Save intermediate dataframes if specified
+  
+  if( save_intermediate == TRUE) {
+    fwrite(claimant_count_stats, file = paste0(INTERMEDIATE,Sys.Date(),"_",data_series,"_claimant.csv"))
+  }
+  
+ return( claimant_count_stats) 
+
+}
+  #.............................................................................
+  ### Additional claimant count data
+  #.............................................................................
+  
+  # NB: for now we need to use a manual downloaded file from Nomis as API is not working.
+
+  claimant_count_stats <- ClaimantCountDownload( data_series = "NM_162_1", time_period = c("2019-12","latest"), save_intermediate = TRUE, line_or_bar = "bar")
+  
+ # raw_claim <- download.file( url = "https://www.nomisweb.co.uk/api/v01/dataset/NM_162_1.data.csv?geography=1807745125...1807745129,1807745111,1807745112,1807745130...1807745133,1807745113...1807745115,1807745134...1807745137,1807745116,1807745117,1807745138,1807745118,1807745119,1807745139,1807745120,1807745140,1807745141,1807745121,1807745142,1807745122,1807745143,1807745123,1807745124,2092957697,2013265927&date=latestMINUS22-latest&gender=0...2&age=0...2,10,11,3,12...16,4,17...20&measure=1...4&measures=20100&signature=NPK-ffca5e5a461529986a4082:0x6a7726c4d1c34de0ce2aca1289257fd9ef1cc613"), mode = "wb")
+
+# claimant_count_stats_o <-read.csv(paste0(INTERMEDIATE,"2021-11-16_NM_162_1_claimant.csv")) %>% 
+#     arrange(date, geography_name,sex_name,age_name)
+
+  # claimant_count_stats <-read.csv(paste0(INPUT,"2021-12-10_claims_NM_162_1.csv")) %>% 
+  #   mutate( DATE = as.Date(paste0(DATE, "-01"))) %>% 
+  #   filter( !is.na(OBS_VALUE) & MEASURES == 20100) %>% 
+  #   pivot_wider( names_from = MEASURE_NAME, values_from = OBS_VALUE) %>%
+  #   clean_names() %>% 
+  #   select( date, date_name, geography_name, gender_name, age_name, last_col(4):last_col()) %>% 
+  #   rename( sex_name = gender_name) %>% 
+  #   arrange(date, geography_name,sex_name,age_name)
+
+  #.............................................................................
+  ### Download PAYE data, clean and save
+  #.............................................................................
+  
+  paye_online_path <- "rtisajan2022" #REMEMBER TO MAKE THIS DYNAMIC
+  
+  
+  raw_paye <- download.file( url = "https://www.ons.gov.uk/file?uri=%2femploymentandlabourmarket%2fpeopleinwork%2fearningsandworkinghours%2fdatasets%2frealtimeinformationstatisticsreferencetableseasonallyadjusted%2fcurrent/rtisajan2022.xlsx",
+                             destfile = paste0(INPUT,Sys.Date(),"_raw_paye.xlsx"),
+                             mode = "wb")
+  
+  paye_stats <- readxl::read_excel(path = paste0(INPUT,Sys.Date(),"_raw_paye.xlsx"), sheet = "7. Employees (NUTS1)", skip = 6) %>% 
+                  select( Date, London, UK) %>%
+                  clean_names() %>% 
+                  mutate( new_date = dmy(paste0("01",date)),
+                          lon_change_since_feb20 = case_when( new_date <= as.Date("2020-02-01") ~ NaN,
+                                                        new_date > as.Date("2020-02-01") ~ london - london[ new_date == "2020-02-01"]),
+                          lon_percentage_change_since_feb20 = case_when( new_date <= as.Date("2020-02-01") ~ NaN,
+                                                        new_date > as.Date("2020-02-01") ~ 100*(london - london[ new_date == "2020-02-01"])/london[ new_date == "2020-02-01"]),
+                          lon_month_change = case_when( new_date - min(new_date) < 365 ~ NaN,
+                                                                    new_date - min(new_date) > 365 ~ 
+                                                                      (london - lag(london, n = 1))),
+                          lon_month_percentage_change = case_when( new_date - min(new_date) < 365 ~ NaN,
+                                                                    new_date - min(new_date) > 365 ~ 
+                                                                      100*(london - lag(london, n = 1))/lag(london, n = 1)),
+                          uk_change_since_feb20 = case_when( new_date <= as.Date("2020-02-01") ~ NaN,
+                                                           new_date > as.Date("2020-02-01") ~ uk - uk[ new_date == "2020-02-01"]),
+                          uk_percentage_change_since_feb20 = case_when( new_date <= as.Date("2020-02-01") ~ NaN,
+                                                           new_date > as.Date("2020-02-01") ~ 100*(uk - uk[ new_date == "2020-02-01"])/uk[ new_date == "2020-02-01"]),
+                          lon_annual_change = case_when( new_date - min(new_date) < 365 ~ NaN,
+                                                                    new_date - min(new_date) > 365 ~ 
+                                                                      (london - lag(london, n = 12))),
+                          lon_annual_percentage_change = case_when( new_date - min(new_date) < 365 ~ NaN,
+                                                                    new_date - min(new_date) > 365 ~ 
+                                                                      100*(london - lag(london, n = 12))/lag(london, n = 12)),
+                          uk_annual_percentage_change = case_when( new_date - min(new_date) < 365 ~ NaN,
+                                                                    new_date - min(new_date) > 365 ~ 
+                                                                      100*(uk - lag(uk, n = 12))/lag(uk, n = 12)))
+  
+  paye_nuts2_stats <- readxl::read_excel(path = paste0(INPUT,Sys.Date(),"_raw_paye.xlsx"), sheet = "11. Employees (NUTS2)", skip = 6) %>% 
+        mutate( new_date = dmy(paste0("01",Date)))  %>% 
+        merge(paye_stats,by="new_date")   %>% 
+    rename(London=london) %>% 
+    select( Date, new_date, "Inner London - West",	"Inner London - East",	"Outer London - East and North East",	"Outer London - South",	"Outer London - West and North West", "London","UK") %>%
+    pivot_longer(cols="Inner London - West":UK,names_to = "area", values_to = "emp_level") %>% 
+    group_by(area) %>% 
+    mutate( 
+      change_perc_since_feb20 = case_when( new_date <= as.Date("2020-02-01") ~ NaN,
+                                      new_date > as.Date("2020-02-01") ~ 100*(emp_level - emp_level[ new_date == "2020-02-01"])/(emp_level[ new_date == "2020-02-01"])),
+      annual_change = case_when(new_date - min(new_date) < 365 ~ NaN,
+                                      new_date - min(new_date) > 365 ~ 100*(emp_level - lag(emp_level, n= 12))/lag(emp_level, n=12))) %>% 
+    clean_names()
+  
+  #fwrite( paye_stats, file = paste0(INTERMEDIATE,Sys.Date(),"_paye.csv"), na = "NaN")
+  
+  
+  ## -------------------------------------------------------------------------##
+  # PAYE data has unique quarterly data on following months:
+  ## - (a) By Age*NUTS1: 1,4,7,10
+  ## - (b) By Industry*NUTS1: 2,5,8,11
+  ## - (c) By LA: 3,6,9,12
+  
+  # These need to be updated as such:
+  ## If division remainder is 0, then (c); if 1 then (a), if 2 then (b)
+
+  current_month <- lubridate::month(Sys.Date())
+  month_remainder <- current_month %% 3
+  
+  
+  if (month_remainder == 0) {
+    dlg_message("Remember to update the following: PAYE LA data")$res
+  } else if (month_remainder==1) {
+    dlg_message("Remember to update the following: PAYE Age*NUTS1 data")$res
+  } else if (month_remainder==2) {
+    dlg_message("Remember to update the following: PAYE Industry*NUTS1 data")$res
+  }
+  
+  #### (a) Each quarter, process data on PAYE at borough level and merge with geographical codes. 
+  #### NB: MUST BE UPDATED MANUALLY TO NEWER DATA  
+  
+  latest_paye_nuts1age_name <- "2022-01-18_raw_paye.xlsx"
+  
+    paye_age_stats <- readxl::read_excel(path = paste0(INPUT,latest_paye_nuts1age_name), sheet = "28. Employees (Age)", skip = 5) %>%
+    mutate(new_date = dmy(paste0("01",Date))) %>% 
+    select( Date, new_date, "0-17","18-24","25-34","35-49","50-64","65+") %>% 
+    pivot_longer(cols="0-17":"65+",names_to = "age_group", values_to = "emp_level") %>% 
+    group_by(age_group) %>% 
+    mutate( 
+      area = "United Kingdom",
+      change_perc_since_feb20 = case_when( new_date <= as.Date("2020-02-01") ~ NaN,
+                                           new_date > as.Date("2020-02-01") ~ 100*(emp_level - emp_level[ new_date == "2020-02-01"])/(emp_level[ new_date == "2020-02-01"])),
+      annual_change = case_when(new_date - min(new_date) < 365 ~ NaN,
+                                new_date - min(new_date) >= 365 ~ 100*(emp_level - lag(emp_level, n= 12))/lag(emp_level, n=12)),
+      age_group = paste0("Aged: ", age_group)) %>% 
+    clean_names() 
+    
+    
+  paye_nuts1age_stats <- readxl::read_excel(path = paste0(INPUT,latest_paye_nuts1age_name), sheet = "32. Employees (NUTS1Age)", skip = 6) %>%
+    mutate(new_date = dmy(paste0("01",Date))) %>% 
+    select( Date, new_date, "London: 0-17","London: 18-24","London: 25-34","London: 35-49","London: 50-64","London: 65+") %>% 
+    pivot_longer(cols="London: 0-17":"London: 65+",names_to = "age_group", values_to = "emp_level") %>% 
+    group_by(age_group) %>% 
+    mutate( 
+      age_group = gsub("London: ","",x=age_group),
+      area = "London",
+      change_perc_since_feb20 = case_when( new_date <= as.Date("2020-02-01") ~ NaN,
+                                           new_date > as.Date("2020-02-01") ~ 100*(emp_level - emp_level[ new_date == "2020-02-01"])/(emp_level[ new_date == "2020-02-01"])),
+      annual_change = case_when(new_date - min(new_date) < 365 ~ NaN,
+                                new_date - min(new_date) >= 365 ~ 100*(emp_level - lag(emp_level, n= 12))/lag(emp_level, n=12)),
+      age_group =paste0("Aged: ", age_group)) %>%
+    clean_names()   %>%  rbind(paye_age_stats) %>% 
+    arrange(area,new_date)
+  
+  
+  newest_period_paye_age <- format(max(paye_nuts1age_stats$new_date),"%B %Y")
+
+  #### (c) Each quarter, process data on PAYE at borough level and merge with geographical codes. 
+  #### NB: MUST BE UPDATED MANUALLY TO NEWER DATA
+  
+  latest_paye_locauth_name <- "2021-12-14_raw_paye.xlsx"
+
+  paye_la_stats <- readxl::read_excel(path = paste0(INPUT,latest_paye_locauth_name), sheet = "19. Employees (LA)", skip = 7) %>% 
+    mutate(new_date = dmy(paste0("01",Date))) %>% 
+    select( Date, new_date, "City of London", "Barking and Dagenham", "Barnet", "Bexley", "Brent", "Bromley", "Camden", "Croydon", "Ealing", "Enfield", "Greenwich", "Hackney", "Hammersmith and Fulham", "Haringey", "Harrow", "Havering", "Hillingdon", "Hounslow", "Islington", "Kensington and Chelsea", "Kingston upon Thames", "Lambeth", "Lewisham", "Merton", "Newham", "Redbridge", "Richmond upon Thames", "Southwark", "Sutton", "Tower Hamlets", "Waltham Forest", "Wandsworth", "Westminster") %>% 
+    pivot_longer(cols="City of London":"Westminster",names_to = "area", values_to = "emp_level") %>% 
+    group_by(area) %>% 
+    mutate( 
+      change_perc_since_feb20 = case_when( new_date <= as.Date("2020-02-01") ~ NaN,
+                                           new_date > as.Date("2020-02-01") ~ 100*(emp_level - emp_level[ new_date == "2020-02-01"])/(emp_level[ new_date == "2020-02-01"])),
+      annual_change = case_when(new_date - min(new_date) < 365 ~ NaN,
+                                new_date - min(new_date) >= 365 ~ 100*(emp_level - lag(emp_level, n= 12))/lag(emp_level, n=12))) %>% 
+    clean_names() %>%  merge(London_LA_codes,by='area') %>% 
+    arrange(area,new_date)
+  
+  newest_period_paye_la <- format(max(paye_la_stats$new_date),"%B %Y")
+  
+  #.............................................................................
+  ### Download Workforce Jobs data
+  #.............................................................................
+  
+  wfj_stats <- nomis_get_data(id = "NM_130_1", time = c("2010-01", "latest"), geography = Group,
+                              industry=c(37748736,150994945:150994964)) %>% 
+    clean_names()   %>% 
+    select(c("date","date_name","geography","geography_name","industry","industry_code","industry_name","item","item_name","measures","measures_name","obs_value","record_count")) %>% 
+    mutate(new_date = dmy(paste0("01",date_name)),
+           quarter =  paste0("Q",quarter(new_date)),
+           quarter_text = case_when(quarter=="Q1" ~ "first",
+                                  quarter=="Q2" ~ "second",
+                                  quarter=="Q3" ~ "third",
+                                  quarter=="Q4" ~ "fourth")) %>% 
+    group_by(industry_name, geography_name, item_name,measures_name) %>% #grouping makes calculating lag values easier
+    mutate( 
+      change_perc_since_dec19 = case_when( new_date <= as.Date("2019-12-01") | measures_name == "Percent" ~ NaN,
+                                      new_date > as.Date("2019-12-01") ~ 100*(obs_value - obs_value[ new_date == "2019-12-01"])/(obs_value[ new_date == "2019-12-01"])),
+      change_since_dec19 = case_when( new_date <= as.Date("2019-12-01") | measures_name == "Percent" ~ NaN,
+                                      new_date > as.Date("2019-12-01") ~ (obs_value - obs_value[ new_date == "2019-12-01"])),
+      change_perc_quar = case_when(  measures_name == "Percent" ~ NaN,
+                                    TRUE ~ 100*(obs_value - lag(obs_value, n = 1))/(lag(obs_value, n = 1))),
+      change_quar = case_when(  measures_name == "Percent" ~ NaN,
+                                    TRUE ~ (obs_value - lag(obs_value, n = 1))),
+      industry_name = case_when(industry_name == "Total" ~ "Total",
+                     TRUE ~  str_sub(industry_name,5,-1))) %>% #trims the name 
+    mutate( industry_name_simple = case_when(
+      industry_name == "Public administration and defence; compulsory social security" ~ "Public admin & defence",
+      industry_name == "Human health and social work activities" ~ "Health",
+      industry_name == "Financial and insurance activities" ~ "Finance & insurance",
+      industry_name == "Professional, scientific and technical activities" ~ "Professional services",
+      industry_name == "Wholesale and retail trade; repair of motor vehicles and motorcycles" ~ "Retail",
+      industry_name == "Other service activities" ~ "Other services",
+      industry_name == "Transportation and storage" ~ "Transport & storage",
+      industry_name == "Arts, entertainment and recreation" ~ "Arts & recreation",
+      industry_name == "Information and communication" ~ "Information & communication",
+      industry_name == "Administrative and support service activities" ~ "Administration",
+      industry_name == "Accommodation and food service activities" ~ "Hospitality",
+      industry_name == "Water supply; sewerage, waste management and remediation activities" ~ "Water",
+      TRUE ~ industry_name)) %>% 
+    group_by( geography_name,new_date,item_name) %>% # To get ranks of industries within date-geography groups
+    mutate(perc_change_dec19_within_date_rank = case_when( industry_name == "Total" ~ NA_integer_, 
+                                         TRUE  ~ dense_rank(desc(change_perc_since_dec19))), 
+            perc_change_quart_within_date_rank = case_when( industry_name == "Total" ~ NA_integer_, 
+                                         TRUE  ~ dense_rank(desc(change_perc_quar)))) %>% 
+    ungroup() #ungroup to ease future manipulations
+    
+  wfj_stats<-wfj_stats %>% arrange(date,geography,item,measures,industry)
+  
+  #wfj_stats <- clean_names(wfj_stats,case="snake") #Converting column names to lower
+
+  fwrite(wfj_stats, file = paste0(INTERMEDIATE,Sys.Date(),"_wfj.csv"), na = "NaN")
+  
+  #-----------------------------------------------------------------------------
+  ### Define GLA line chart function
+  #-----------------------------------------------------------------------------
+  
+  GLALineChart <- function( data_set = lfs_stats, ### This function has been written to work specifically with the NM_59_1 dataset
+                        lfs_or_claims = "lfs",
+                        x_var = date, ### Assumed that this will be a line chart with dates on the x-axis
+                        y_var = NULL, ### See document "[today's date]colnames.csv" for variables available for charting
+                        geography = c("London", "United Kingdom"),
+                        suffix = "%",
+                        y_limits = c(0,100),
+                        nudge_y = NULL,
+                        title = NULL,
+                        subtitle = paste0("Latest data for period ", new_release),
+                        caption = "",
+                        chart_name = NULL) {
+      
+    pal <- gla_pal(gla_theme = "default", palette_type = "highlight", n = c(1, 1))
+    theme_set(theme_gla(gla_theme = "default"))
+    
+    ### Create dataset for charting
+    
+    if( lfs_or_claims == "lfs") {
+    
+    for_charting <- data_set %>% 
+      filter( geography_name %in% geography & value_type_name == "Level" & sex_name == "Total" & measures == 20207)
+    } else {
+    for_charting <- data_set %>% 
+      filter( geography_name %in% geography & sex_name == "Total" & !is.na({{y_var}}))
+    }
+    ### Set x-axis format
+  
+    ### Plot charts
+    
+    new_release <- for_charting$date_name[for_charting$date == max(for_charting$date)]
+    
+    glaplot <- for_charting %>%
+      ggplot(mapping = aes(x = {{x_var}}, y = {{y_var}}, 
+                           colour = geography_name, group = geography_name,
+                           text = paste(
+                          geography_name, "\n",
+                          format({{x_var}},'%B %Y'), "\n",
+                          "Rate: ", perc_form({{y_var}}),"%", "\n",
+                          sep = ""))) +
+      ggla_line(aes(size= geography_name)) +
+      scale_size_manual(values = c(4 * mm_to_pt, 2 * mm_to_pt)) +
+      scale_colour_manual(values = pal) +
+      ggla_highlight(filter_type = "end") +
+      ggla_highlight(mapping = aes(label = paste0({{y_var}}, "%")),
+                     geom = GeomGLATextHighlight, filter_type = "end",  size = 4.5,
+                     position = position_nudge(y = nudge_y),check_overlap = TRUE)+
+      coord_cartesian(clip = 'off') +
+      scale_y_continuous(expand = c(0, 0), labels = dollar_format(prefix = "", 
+                                                                  suffix = suffix, 
+                                                                  largest_with_cents = 1), 
+                                                                  limits = y_limits) +
+      scale_x_date( date_breaks = "2 months",
+                    date_labels = "%b'%y",
+                    expand = expansion( mult = c(0.1,0.02))) +
+      theme(plot.margin = unit(c(1,1,1,1), "cm"))+
+      labs(title = title,
+           subtitle = subtitle,
+           caption = caption) +
+      theme(plot.caption = element_text(color = rgb(166,166,166,maxColorValue = 255)))
+    
+    ggsave( paste0(MARKDOWN_IMAGES,Sys.Date(),"_",chart_name,".svg"), device = "svg", width = 8, height = 8, units = "in")
+    ggsave( paste0(MARKDOWN_IMAGES,Sys.Date(),"_",chart_name,".png"), device = "png", width = 8, height = 8, units = "in")
+    
+    return(glaplot)
+    
+  }
+
+```
+
+```{r, main_figures ,echo=FALSE}
+  ### Create all the figures needed for the section below
+  # Name format:
+  # _d_: difference, _p_: difference in percent, _pp_: difference in percentage points, _uk: UK level stat, London otherwise
+
+# Paye
+paye_d_month <- value_form(paye_stats %>% filter( new_date == max(new_date)) %>% select(lon_month_change),s= signif_thous)
+
+paye_p_month <- perc_form(paye_stats %>% filter( new_date == max(new_date)) %>% select(lon_month_percentage_change),d = digits_perc)
+
+paye_newmonth <- paye_stats %>% filter( new_date == max(new_date)) %>% mutate(new_date=format(new_date,'%B %Y')) %>%  select(new_date)
+
+paye_lastmonth <- paye_stats  %>% mutate(lag_month = lag(new_date, n = 1)) %>% mutate(lag_month2 = format(lag_month, '%B')) %>% filter( new_date == max(new_date)) %>%  select(lag_month2)
+
+paye_p_feb20 <- perc_form(paye_stats %>% filter( new_date == max(new_date)) %>% select(lon_percentage_change_since_feb20),d = digits_perc)
+
+# LFS
+
+lfs_newmonth <- lfs_stats %>% mutate(month = format(date, '%B %Y')) %>% filter(sex_name == "Total"  & geography_name == "London" & value_type_name == "Level" & date == max(date) & measures == 20207) %>%  select(month)
+  
+lfs_lastmonth <- lfs_stats  %>% mutate(lag_month = ymd(date) %m+% - months(2)) %>% mutate(lag_month2 = format(lag_month, '%B')) %>% filter(sex_name == "Total"  & geography_name == "London" & value_type_name == "Level" & date == max(date) & measures == 20207) %>%  select(lag_month2)
+
+
+# Unem
+
+unem_rate <- perc_form(lfs_stats %>% filter(sex_name == "Total" & date == max(date) & geography_name == "London" & value_type_name == "Level" & measures == 20207) %>% select(total_unemployed_aged_16_and_over),d = digits_perc)
+  
+unem_pp_quart <- perc_form(lfs_stats %>% filter(sex_name == "Total" & date == max(date) & geography_name == "London" & value_type_name == "Change on quarter" & measures == 20207) %>% select(total_unemployed_aged_16_and_over),d = digits_perc)
+
+
+unem_pp_year <- perc_form(lfs_stats %>% filter(sex_name == "Total" & date == max(date) & geography_name == "London" & value_type_name == "Change on year" & measures == 20207)  %>% select(total_unemployed_aged_16_and_over),d = digits_perc)
+  
+unem_rate_uk <- perc_form(lfs_stats %>% filter(sex_name == "Total" & date == max(date) & geography_name == "United Kingdom" & value_type_name == "Level" & measures == 20207) %>% select(total_unemployed_aged_16_and_over),d = digits_perc)
+
+
+# Employment
+
+emp_rate <- perc_form(lfs_stats %>% filter(sex_name == "Total" & date == max(date) & geography_name == "London" & value_type_name == "Level" & measures == 20207)  %>% select(total_in_employment_aged_16_to_64),d = digits_perc)
+
+emp_pp_quart <- perc_form(lfs_stats %>% filter(sex_name == "Total" & date == max(date) & geography_name == "London"  & value_type_name == "Change on quarter" & measures == 20207)  %>% select(total_in_employment_aged_16_to_64),d = digits_perc)
+
+emp_pp_year <-perc_form(lfs_stats %>% filter(sex_name == "Total" & date == max(date) & geography_name == "London"  & value_type_name == "Change on year" & measures == 20207) %>% select(total_in_employment_aged_16_to_64),d = digits_perc)
+
+emp_rate_uk <- perc_form(lfs_stats %>% filter(sex_name == "Total" & date == max(date) & geography_name == "United Kingdom" & value_type_name == "Level" & measures == 20207)  %>% select(total_in_employment_aged_16_to_64),d = digits_perc)
+
+# Inactivity
+
+inact_rate <- perc_form(lfs_stats %>% filter(sex_name == "Total" & date == max(date) & geography_name == "London" & value_type_name == "Level" & measures == 20207)  %>% select(total_economically_inactive_aged_16_to_64),d = digits_perc)
+
+inact_pp_quart <- perc_form(lfs_stats %>% filter(sex_name == "Total" & date == max(date) & geography_name == "London"  & value_type_name == "Change on quarter" & measures == 20207)  %>% select(total_economically_inactive_aged_16_to_64),d = digits_perc)
+
+inact_pp_year <-perc_form(lfs_stats %>% filter(sex_name == "Total" & date == max(date) & geography_name == "London"  & value_type_name == "Change on year" & measures == 20207) %>% select(total_economically_inactive_aged_16_to_64),d = digits_perc)
+
+inact_rate_uk <- perc_form(lfs_stats %>% filter(sex_name == "Total" & date == max(date) & geography_name == "United Kingdom" & value_type_name == "Level" & measures == 20207)  %>% select(total_economically_inactive_aged_16_to_64),d = digits_perc)
+
+# WFJ
+
+wfj_year <-  wfj_stats %>% filter(new_date == max(new_date)) %>% filter(row_number()==1) %>% mutate(year=year(new_date)) %>% select(year)
+
+wfj_newquarter <- wfj_stats %>% ungroup()  %>% filter(new_date == max(new_date)) %>% filter(row_number()==1) %>% select(quarter_text) 
+  
+wfj_oldquarter <-  wfj_stats %>% filter(new_date == (ymd(max(new_date)) %m+% - months(3))) %>% filter(row_number()==1) %>% select(quarter_text)
+
+wfj_d_quart <- value_form(wfj_stats%>% ungroup()  %>% filter(item_name == "total workforce jobs" & new_date == max(new_date) & geography_name == "London" & measures_name == "Value" & industry_name == "Total") %>% select(obs_value) - wfj_stats %>% filter(item_name == "total workforce jobs" & new_date == (ymd(max(new_date)) %m+% - months(3)) & geography_name == "London" & measures_name == "Value" & industry_name == "Total") %>% select(obs_value),s = signif_thous)
+
+wfj_p_quart <- perc_form(100*(wfj_stats %>% filter(item_name == "total workforce jobs" & new_date == max(new_date) & geography_name == "London" & measures_name == "Value" & industry_name == "Total") %>% select(obs_value) - wfj_stats %>% filter(item_name == "total workforce jobs" & new_date == (ymd(max(new_date)) %m+% - months(3)) & geography_name == "London" & measures_name == "Value" & industry_name == "Total") %>% select(obs_value))/(wfj_stats %>% filter(item_name == "total workforce jobs" & new_date == (ymd(max(new_date)) %m+% - months(3)) & geography_name == "London" & measures_name == "Value" & industry_name == "Total") %>% select(obs_value)),d = digits_perc)
+
+wfj_d_dec19 <- value_form(wfj_stats %>% filter(item_name == "total workforce jobs" & new_date == max(new_date) & geography_name == "London" & measures_name == "Value" & industry_name == "Total") %>% select(obs_value) - wfj_stats %>% filter(item_name == "total workforce jobs" & new_date == (ymd("2019-12-01")) & geography_name == "London" & measures_name == "Value" & industry_name == "Total") %>% select(obs_value),s = signif_thous)
+
+wfj_p_dec19 <- perc_form(100*(wfj_stats %>% filter(item_name == "total workforce jobs" & new_date == max(new_date) & geography_name == "London" & measures_name == "Value" & industry_name == "Total") %>% select(obs_value) - wfj_stats %>% filter(item_name == "total workforce jobs" & new_date == (ymd("2019-12-01")) & geography_name == "London" & measures_name == "Value" & industry_name == "Total") %>% select(obs_value))/(wfj_stats %>% filter(item_name == "total workforce jobs" & new_date == (ymd("2019-12-01")) & geography_name == "London" & measures_name == "Value" & industry_name == "Total") %>% select(obs_value)),d = digits_perc)
+
+```
+
+<hr  width="100%" style="background-color: rgb(134,139,142);height: 1.0px;margin: 0;"/>
+
+<!-- Summary of findings - MANUALLY ADJUST -->
+
+<br/>
+
+## Summary of key points
+
+<br/>
+
+-   **Payrolled employees** `r condi_text(paye_d_month,"rise")` by around `r abs2(paye_d_month)`, or `r abs2(paye_p_month)`%, between `r paye_lastmonth` and `r paye_newmonth` and was `r abs2(paye_p_feb20)`% `r condi_text(paye_p_feb20,"above")` pre-pandemic (February 2020) levels.
+-   **Unemployment rate** continued to fall from its pandemic peak but was still higher than the UK average. London's unemployment rate was estimated at `r unem_rate`% for the three months ending `r lfs_newmonth`, `r condi_text(unem_pp_year,"up")` `r abs2(unem_pp_year)` percentage points (pp) on the same period in the previous year. The UK average was `r unem_rate_uk`%.
+-   The **employment rate** in London was estimated at `r emp_rate`% for the same period, `r condi_text(emp_pp_quart,"up")` `r abs2(emp_pp_quart)`pp on both the previous quarter and from a year earlier. London's employment rate was in line with the UK average (`r emp_rate_uk`%).
+-   London's **inactivity rate** (the measure of those not looking and/or not available to work) was estimated at `r inact_rate`%. While this was `r condi_text(inact_pp_year,"up")` `r abs2(inact_pp_year)`pp on the previous year, the inactivity rate `r condi_text(inact_pp_quart,"rise")` on the previous quarter and remained lower than the UK-wide estimate of `r inact_rate_uk`%.
+
+
+<a href="#top">Back to top</a>
+
+<!-- Standard intro page with caveats -->
+
+<hr  width="100%" style="background-color: rgb(134,139,142);height: 1.0px;margin: 0;"/>
+
+<br/>
+
+
+## Measuring the labour market
+
+<br/>
+
+The ONS has published its latest [labour market update](https://www.ons.gov.uk/employmentandlabourmarket/peopleinwork/employmentandemployeetypes) covering Labour Force Survey (LFS) data for the three months ending `r lfs_newmonth`. This bulletin presents the latest headline labour market estimates for London.
+
+Please note:
+
+-   Many of the statistics presented here are estimates based on surveys, and as such have a margin of error -- known as sampling variability.\
+-   They also cover different reference periods or count dates, and have therefore been impacted differently by the spread of COVID-19.
+
+More information and previous GLA Economics analyses can be found on our COVID-19 labour market analysis [page](https://data.london.gov.uk/dataset/gla-economics-covid-19-labour-market-analysis).
+
+More information on the data used and a glossary of terms can be found on the [ONS website](https://www.ons.gov.uk/employmentandlabourmarket/peopleinwork/employmentandemployeetypes/methodologies/aguidetolabourmarketstatistics).
+
+```{r,paye figures, echo=FALSE}
+
+paye_level <- value_form(paye_stats %>% filter( new_date == max(new_date)) %>% mutate(lon_round=london/1000000) %>% select(lon_round),s=signif_mil, d=digits_mil)
+
+paye_d_year <- value_form(paye_stats %>% filter( new_date == max(new_date))  %>% select(lon_annual_change),s=signif_thous)
+  
+paye_p_year <- perc_form(paye_stats %>% filter( new_date == max(new_date)) %>% select(lon_annual_percentage_change),d = digits_perc)
+
+paye_lastyearmonth <- paye_stats  %>% mutate(lag_month = lag(new_date, n = 12)) %>% mutate(lag_month2 = format(lag_month, '%B %Y')) %>% filter( new_date == max(new_date)) %>%  select(lag_month2)
+  
+paye_p_year_uk <- perc_form(paye_stats %>% filter( new_date == max(new_date)) %>% select(uk_annual_percentage_change),d = digits_perc)
+
+paye_d_feb20 <- value_form(paye_stats %>% filter( new_date == max(new_date))  %>% select(lon_change_since_feb20),s=signif_thous)
+
+paye_p_feb20 <- perc_form(paye_stats %>% filter( new_date == max(new_date)) %>% select(lon_percentage_change_since_feb20),d = digits_perc)
+
+paye_d_feb20_uk <- value_form(paye_stats %>% filter( new_date == max(new_date))  %>% select(uk_change_since_feb20),s=signif_thous)
+
+paye_p_feb20_uk <- perc_form(paye_stats %>% filter( new_date == max(new_date)) %>% select(uk_percentage_change_since_feb20),d = digits_perc)
+
+```
+
+<a href="#top">Back to top</a>
+
+<hr  width="100%" style="background-color: rgb(134,139,142);height: 1.0px;margin: 0;"/>
+
+<br/>
+
+## Payrolled employees {.tabset}
+
+<br/>
+
+The count of payrolled employees from HMRC's Pay As You Earn (PAYE) RTI dataset offers a timely measure of labour market trends:
+
+-   Early estimates indicate that there were around `r paye_level` million payrolled employees living in London in `r paye_newmonth`, `r condi_text(paye_d_month,"noun")` of around `r abs2(paye_d_month)` or `r abs2(paye_p_month)`% on the previous month.
+
+-   The latest London estimate represents `r condi_text(paye_d_year,"noun")` of `r abs2(paye_d_year)` or `r abs2(paye_p_year)`% on the previous year (`r paye_lastyearmonth`) against a UK average increase of `r paye_p_year_uk`% (see charts).
+
+-   Relative to pre-pandemic levels (February 2020), the number of payrolled employees in London was `r condi_text(paye_d_feb20,"up")` by `r abs2(paye_d_feb20)` or `r abs2(paye_p_feb20)`%. This compares to `r condi_text(paye_p_feb20_uk,"noun")` of `r abs2(paye_p_feb20_uk)`% across the UK on average.
+
+<a href="#top">Back to top</a>
+
+### Change on previous year
+
+```{r PAYE chart, echo=FALSE,fig.cap = payecap, out.width='100%' }
+
+pal <- gla_pal(gla_theme = "default", palette_type = "highlight", n = c(1, 1))
+theme_set(theme_gla(gla_theme = "default"))
+
+paye_stats_chart <- paye_stats %>%
+                    pivot_longer(cols = ends_with("_change"), names_to = "geography", values_to = "change" ) %>%
+                    mutate( geography_name = case_when( grepl("lon",geography) ~ "London",
+                                                        grepl("uk",geography) ~ "United Kingdom")) %>%
+                    mutate(var_type = sub(".*?_",'',geography)) %>% 
+                                      filter( new_date >= "2020-01-01" & var_type == "annual_percentage_change") %>%
+                    ggplot(mapping = aes(x = new_date, y = change,
+                                          colour = geography_name, group = geography_name,
+                           text = paste(
+                          geography_name, "\n",
+                          format(new_date,'%B %Y'), "\n",
+                          "Change: ", perc_form(change),"%", "\n",
+                          sep = ""))) +
+                    ggla_line(aes(size= geography_name)) +
+                    scale_size_manual(values = c(4 * mm_to_pt, 2 * mm_to_pt)) +
+                    scale_colour_manual(values = pal) +
+                   # ggla_highlight(filter_type = "end") +
+                    # ggla_highlight(mapping = aes(label = paste0(format(change, digits = 1),"%")),
+                    #                geom = GeomGLATextHighlight, filter_type = "end",  size = 4.5,
+                    #                position = position_nudge(y = c(-1.3,+0.5)))+
+                    coord_cartesian(clip = 'off') +
+                    geom_hline(aes(yintercept=0), colour="gray45") +
+                    scale_y_continuous(expand = c(0, 0), labels = dollar_format(prefix = "",
+                                                                                suffix = "%",
+                                                                                largest_with_cents = 1),
+                                       limits = c(-6,7)) +
+                    scale_x_date( date_breaks = "2 months",
+                                  date_labels = "%b'%y",
+                                  expand = expansion( mult = c(0.1,0.02))) +
+                    theme(plot.margin = unit(c(1,1,1,1), "cm"))+
+                    labs(title =  "Payrolled employees, change on previous year",
+                         subtitle = paste0("Latest data for period ", paye_stats$date[paye_stats$new_date == max(paye_stats$new_date)]),
+                         caption = "\nSource: HM Revenue and Customs – Pay As You Earn Real Time Information.\n\nNote: Estimates are based on where employees live.")+
+                    theme(plot.caption = element_text(color = rgb(166,166,166,maxColorValue = 255)))
+
+ggsave( paste0(MARKDOWN_IMAGES,Sys.Date(),"_","paye",".svg"), device = "svg", width = 8, height = 8, units = "in")
+ggsave( paste0(MARKDOWN_IMAGES,Sys.Date(),"_","paye",".png"), device = "png", width = 8, height = 8, units = "in")
+
+                     
+#knitr::include_graphics(paste0(MARKDOWN_IMAGES,Sys.Date(),"_","paye",".svg"))
+
+ggplotly(paye_stats_chart,tooltip = "text") %>% 
+  ggla_plotly_settings()    %>% 
+  layout(title = list(text = paste0("<b>","Payrolled employees, change on previous year","</b>",
+                                    "<br>",
+                                    "<sup>",
+                                    paste0("Latest data for period ", paye_stats$date[paye_stats$new_date == max(paye_stats$new_date)]),
+                                    "</sup>",
+                                    "<br>"),
+         font = list(size = 22),
+         y = .95, xref = "plot"),
+         xaxis = list(tickfont = list(size = 15)),
+         yaxis = list(tickfont = list(size = 15)),
+         legend = list(font = list(size = 15),title=list(text="")),
+         hovermode = "x") 
+
+payecap <- paste0("Source: HM Revenue and Customs – Pay As You Earn Real Time Information.","<br>","<br>", "Note: Estimates are based on where employees live.")
+
+```
+
+<hr  width="100%" style="background-color: rgb(134,139,142);height: 1.0px;margin: 0;"/>
+
+<br/>
+
+### Change since February 2020, NUTS2 regions
+
+```{r paye bar feb20, , echo=FALSE,fig.cap = payebarcapfeb, out.width='100%'}
+
+
+pal <- gla_pal(gla_theme = "default", palette_type = "highlight", n = c(1, 1))
+theme_set(theme_gla(gla_theme = "default"))
+
+paye_stats_barchart_feb20 <- paye_nuts2_stats %>%
+  filter( new_date == max(new_date)) %>%
+  ungroup() %>% 
+  mutate(chart_ranking = case_when( area == "UK" ~ 1,
+                                    area == "London" ~ 2,
+                                    TRUE ~ dense_rank(desc(change_perc_since_feb20))+2)) %>% 
+  ggplot(mapping = aes(x =  reorder(area, -chart_ranking), y = change_perc_since_feb20,
+                       colour = area, group = area, fill=area,
+                       text = paste(
+                         area, "\n",
+                         "Change: ", perc_form(change_perc_since_feb20),"%", "\n",
+                         sep = ""))) +
+  geom_bar(stat="identity",width=0.5)+
+  geom_text(aes(label=paste(format(round(change_perc_since_feb20,1), digits = 2), "%"), y = change_perc_since_feb20-0.2*((change_perc_since_feb20)/abs(change_perc_since_feb20))),color=c("white","white","white","white","white","white","black"))+ #cannot use vjust with ggplotly
+  scale_color_manual(values = c(pal[1],pal[1],pal[1],pal[1],pal[1],pal[1],pal[2]), aesthetics = "colour") +
+  scale_fill_manual(values = c(pal[1],pal[1],pal[1],pal[1],pal[1],pal[1],pal[2]), aesthetics =  "fill") +
+  coord_cartesian(clip = 'off') +
+  geom_hline(aes(yintercept=0), colour="gray45") +
+  scale_y_continuous(labels = dollar_format(prefix = "",
+                                            suffix = "%",
+                                            largest_with_cents = 1),
+                     limits = c(-2,3)) +
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 10)) +
+  
+  theme(plot.margin = unit(c(1,1,1,1), "cm"),axis.text=element_text(size=12))+
+  labs(title =  "Payrolled employees, change since February 2020 by NUTS2 region",
+       subtitle = paste0("Latest data for period ", paye_nuts2_stats$date[paye_nuts2_stats$new_date == max(paye_nuts2_stats$new_date)]),
+       caption = "") + 
+  theme(legend.position = "none")
+
+ggsave( paste0(MARKDOWN_IMAGES,Sys.Date(),"_","paye_nuts2",".svg"), device = "svg", width = 16, height = 8, units = "in")
+ggsave( paste0(MARKDOWN_IMAGES,Sys.Date(),"_","paye_nuts2",".png"), device = "png", width = 16, height = 8, units = "in")
+
+
+#knitr::include_graphics(paste0(MARKDOWN_IMAGES,Sys.Date(),"_","paye_nuts2",".png"))
+
+
+
+ggplotly(paye_stats_barchart_feb20,tooltip = "text") %>% 
+  ggla_plotly_settings(legend=FALSE)   %>%
+  layout(title = list(text = paste0("<b>","Payrolled employees, change since February 2020 by NUTS2 region","</b>",
+                                    "<br>",
+                                    "<sup>",
+                                    paste0("Latest data for period ", paye_nuts2_stats$date[paye_nuts2_stats$new_date == max(paye_nuts2_stats$new_date)]),
+                                    "</sup>",
+                                    "<br>"),
+                      font = list(size = 22),
+                      y = .95, xref = "plot"),
+         xaxis = list(tickfont = list(size = 15)),
+         yaxis = list(tickfont = list(size = 15)),
+         legend = list(font = list(size = 15),title=list(text=""))) 
+
+payebarcapfeb <- paste0("Source: HM Revenue and Customs – Pay As You Earn Real Time Information.","<br>","<br>", "Note: Estimates are based on where employees live.")
+
+```
+
+<hr  width="100%" style="background-color: rgb(134,139,142);height: 1.0px;margin: 0;"/>
+
+<br/>
+
+### Change on previous year, NUTS2 regions
+
+```{r paye bar, , echo=FALSE,fig.cap = payebarcap, out.width='100%' }
+
+
+pal <- gla_pal(gla_theme = "default", palette_type = "highlight", n = c(1, 1))
+theme_set(theme_gla(gla_theme = "default"))
+
+paye_stats_barchart <- paye_nuts2_stats %>%
+  filter(new_date == max(new_date)) %>%
+  ungroup() %>% 
+  mutate(chart_ranking = case_when( area == "UK" ~ 1,
+                                    area == "London" ~ 2,
+                                    TRUE ~ dense_rank(desc(annual_change))+2)) %>% 
+  ggplot(mapping = aes(x =  reorder(area, -chart_ranking), y = annual_change,
+                       colour = area, group = area, fill=area,
+         text = paste(
+           area, "\n",
+           "Change: ", perc_form(annual_change),"%", "\n",
+           sep = ""))) +
+  geom_text(aes(label=paste0(format(round(annual_change,1), digits = 2), "%"), y = annual_change-0.2*min(annual_change)), color=c("white","white","white","white","white","white","black"))+ #cannot use vjust with ggplotly
+  geom_bar(stat="identity",width=0.5)+
+  scale_color_manual(values = c(pal[1],pal[1],pal[1],pal[1],pal[1],pal[1],pal[2]), aesthetics = "colour") +
+  scale_fill_manual(values = c(pal[1],pal[1],pal[1],pal[1],pal[1],pal[1],pal[2]), aesthetics = "fill") +
+  scale_size_manual(values = c(4 * mm_to_pt, 2 * mm_to_pt)) +
+  coord_cartesian(clip = 'off') +
+  geom_hline(aes(yintercept=0), colour="gray45") +
+  scale_y_continuous(labels = dollar_format(prefix = "",
+                                            suffix = "%",
+                                            largest_with_cents = 1),
+                     limits = c(0,8)) +
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 10)) +
+  
+  theme(plot.margin = unit(c(1,1,1,1), "cm"),axis.text=element_text(size=12))+
+  labs(title =  "Payrolled employees, change on previous year by NUTS2 region",
+       subtitle = paste0("Latest data for period ", paye_nuts2_stats$date[paye_nuts2_stats$new_date == max(paye_nuts2_stats$new_date)]),
+       caption = "\nSource: HM Revenue and Customs – Pay As You Earn Real Time Information.\n\nNote: Estimates are based on where employees live.") + 
+  theme(legend.position = "none") +
+  theme(plot.caption = element_text(color = rgb(166,166,166,maxColorValue = 255)))
+
+ggsave( paste0(MARKDOWN_IMAGES,Sys.Date(),"_","paye_nuts2_V2",".svg"), device = "svg", width = 8, height = 8, units = "in")
+ggsave( paste0(MARKDOWN_IMAGES,Sys.Date(),"_","paye_nuts2_V2",".png"), device = "png", width = 8, height = 8, units = "in")
+
+
+#knitr::include_graphics(paste0(MARKDOWN_IMAGES,Sys.Date(),"_","paye_nuts2_V2",".svg"))
+
+
+ggplotly(paye_stats_barchart,tooltip = "text") %>% 
+  ggla_plotly_settings(legend=FALSE)   %>%
+  layout(title = list(text = paste0("<b>","Payrolled employees, change on previous year by NUTS2 region","</b>",
+                                    "<br>",
+                                    "<sup>",
+                                    paste0("Latest data for period ", paye_nuts2_stats$date[paye_nuts2_stats$new_date == max(paye_nuts2_stats$new_date)]),
+                                    "</sup>",
+                                    "<br>"),
+                      font = list(size = 22),
+                      y = .95, xref = "plot"),
+         xaxis = list(tickfont = list(size = 15)),
+         yaxis = list(tickfont = list(size = 15)),
+         legend = list(font = list(size = 15),title=list(text=""))) 
+
+payebarcap <- paste0("Source: HM Revenue and Customs – Pay As You Earn Real Time Information.","<br>","<br>", "Note: Estimates are based on where employees live.")
+
+
+```
+
+
+
+<hr  width="100%" style="background-color: rgb(134,139,142);height: 1.0px;margin: 0;"/>
+
+<br/>
+
+## Additional payrolled employee statistics {.tabset}
+
+<br/>
+
+The tabs below are each updated once per quarter, as new data is released by the ONS/HMRC.
+
+<br/>
+
+```{r paye age stats,echo=FALSE}
+
+#Max change in London
+paye_age_max_perc_lon <- perc_form(paye_nuts1age_stats %>% ungroup() %>% filter(new_date == max(new_date) & area == "London" & !(age_group %in% c("Aged: 0-17"))) %>% filter(change_perc_since_feb20 == max(change_perc_since_feb20) ) %>% select(change_perc_since_feb20),d = digits_perc)
+
+paye_age_max_age_lon <- as.character(paye_nuts1age_stats %>% ungroup() %>% filter(new_date == max(new_date) & area == "London" & !(age_group %in% c("Aged: 0-17"))) %>% filter(change_perc_since_feb20 == max(change_perc_since_feb20) ) %>% select(age_group))
+
+paye_age_max_l_perc_uk <- perc_form(paye_nuts1age_stats %>% ungroup() %>% filter(new_date == max(new_date) & area == "United Kingdom" & !(age_group %in% c("Aged: 0-17"))) %>% filter(age_group == paye_age_max_age_lon ) %>% select(change_perc_since_feb20),d = digits_perc)
+
+#Min change in London
+paye_age_min_perc_lon <- perc_form(paye_nuts1age_stats %>% ungroup() %>% filter(new_date == max(new_date) & area == "London" & !(age_group %in% c("Aged: 0-17"))) %>% filter(change_perc_since_feb20 == min(change_perc_since_feb20) ) %>% select(change_perc_since_feb20),d = digits_perc)
+
+paye_age_min_age_lon <- as.character(paye_nuts1age_stats %>% ungroup() %>% filter(new_date == max(new_date) & area == "London" & !(age_group %in% c("Aged: 0-17"))) %>% filter(change_perc_since_feb20 == min(change_perc_since_feb20) ) %>% select(age_group))
+
+paye_age_min_l_perc_uk <- perc_form(paye_nuts1age_stats %>% ungroup() %>% filter(new_date == max(new_date) & area == "United Kingdom" & !(age_group %in% c("Aged: 0-17"))) %>% filter(age_group == paye_age_min_age_lon ) %>% select(change_perc_since_feb20),d = digits_perc)
+
+```
+
+### Change by age group
+
+<br/>
+
+Recent changes in the number of payrolled employees vary by age group. Compared to pre-pandemic levels (February 2020):
+
+- The number of payrolled employees "`r paye_age_max_age_lon`" in London was `r condi_text(paye_age_max_perc_lon,"up")` by `r abs2(paye_age_max_perc_lon)`% in `r newest_period_paye_age`, while the number of employees "`r paye_age_min_age_lon`" was `r condi_text(paye_age_min_perc_lon,"up")` by `r abs2(paye_age_min_perc_lon)`%.
+
+-   For the UK overall, those two age groups were `r condi_text(paye_age_max_l_perc_uk,"up")` by `r abs2(paye_age_max_l_perc_uk)`% and unchanged, respectively.
+
+<a href="#top">Back to top</a>
+
+```{r paye age region, echo=FALSE, fig.cap=paye_agecap, out.width='100%'}
+  
+    ### Change in PAYE employees by age group since Feb2020
+pal <- gla_pal(gla_theme = "default", palette_type = "highlight", n = c(1, 1))
+theme_set(theme_gla(gla_theme = "default"))
+
+
+paye_age_bars <- paye_nuts1age_stats %>%
+  group_by(area) %>% 
+   filter( (new_date == max(new_date)) & 
+            !(age_group %in% c("Aged: 0-17"))
+          & area %in% c("London", "United Kingdom")) %>%  
+  mutate(chart_ranking = rank((age_group))) %>% 
+  ungroup() %>% 
+  ggplot(mapping = aes(x = reorder(age_group,chart_ranking), 
+                       y = change_perc_since_feb20, 
+                       colour = area , fill=area,
+                       text = paste(age_group, "\n",
+                                    area, "\n",
+                                    "Change: ", perc_form(change_perc_since_feb20),"%", "\n",
+                                    sep = ""))) +
+  geom_bar(stat = "identity", position = position_dodge(), width = 0.4)+
+  geom_hline(aes(yintercept=0), colour="gray45") +
+  scale_colour_manual(values = pal) +
+  scale_fill_manual(values = pal) +
+  theme_set(theme_gla(gla_theme = "default")) +
+  scale_y_continuous(limits = c(-4, 6), labels = dollar_format(prefix = "", 
+                                                                 suffix = "%", 
+                                                                 largest_with_cents = 1)) +
+  theme(axis.text.x = element_text( hjust=1, vjust=0.5)) +
+  theme(plot.margin = unit(c(1,1,1,1), "cm"))+
+  labs(title = "Payrolled employees, change since February 2020",
+       subtitle = paste0("Latest data for period ", newest_period_paye_age),
+       caption = "\nSource: HM Revenue and Customs – Pay As You Earn Real Time Information.\n\nNote: Estimates are based on where employees live.") +
+  theme(plot.caption = element_text(color = rgb(166,166,166,maxColorValue = 255)))
+
+ggsave( paste0(MARKDOWN_IMAGES,Sys.Date(),"_","paye_age_feb20.svg"), device = "svg", width = 8, height = 8, units = "in")
+ggsave( paste0(MARKDOWN_IMAGES,Sys.Date(),"_","paye_age_feb20.png"), device = "png", width = 8, height = 8, units = "in")
+
+
+ggplotly(paye_age_bars,tooltip = "text") %>% 
+  ggla_plotly_settings()    %>% 
+  layout(title = list(text = paste0("<b>","Payrolled employees, change since February 2020","</b>",
+                                    "<br>",
+                                    "<sup>",
+                                    paste0("Latest data for period ", newest_period_paye_age),
+                                    "</sup>",
+                                    "<br>"),
+                      font = list(size = 22),
+                      y = .95, xref = "plot"),
+         xaxis = list(tickfont = list(size = 15)),
+         yaxis = list(tickfont = list(size = 15)),
+         legend = list(font = list(size = 15),title=list(text=""))) 
+
+
+paye_agecap <- paste0("Source: HM Revenue and Customs – Pay As You Earn Real Time Information.","<br>","<br>", "Note: Estimates are based on where employees live.")
+  
+  
+```
+
+```{r paye la stats,echo=FALSE}
+
+paye_la_max_val <- perc_form(paye_la_stats %>% filter(new_date == max(new_date)) %>% filter(change_perc_since_feb20 == max(change_perc_since_feb20)) %>% select(change_perc_since_feb20),d = digits_perc)
+
+paye_la_max_area <- paye_la_stats %>% filter(new_date == max(new_date)) %>% filter(change_perc_since_feb20 == max(change_perc_since_feb20)) %>% select(area)
+
+paye_la_min_val <- perc_form(paye_la_stats %>% filter(new_date == max(new_date)) %>% filter(change_perc_since_feb20 == min(change_perc_since_feb20)) %>% select(change_perc_since_feb20),d = digits_perc)
+
+paye_la_min_area <- paye_la_stats %>% filter(new_date == max(new_date)) %>% filter(change_perc_since_feb20 == min(change_perc_since_feb20)) %>% select(area)
+
+paye_la_count_below_feb20 <- paye_la_stats %>% filter(new_date == max(new_date)) %>% mutate(count_below_feb20 = sum(change_perc_since_feb20<0)) %>% filter(row_number()==1) %>%  select(count_below_feb20)
+
+paye_la_count_tot <- paye_la_stats %>% filter(new_date == max(new_date)) %>% add_count() %>% filter(row_number()==1) %>%  select(n)
+
+```
+
+<hr  width="100%" style="background-color: rgb(134,139,142);height: 1.0px;margin: 0;"/>
+
+<br/>
+
+### Change by local authority
+
+<br/>
+
+There is considerable variation in the change in payrolled employees by London authority:
+
+-   Compared to February 2020, the number of payrolled employees living in `r paye_la_max_area` was `r condi_text(paye_la_max_val,"up")` by `r abs2(paye_la_max_val)`% in `r newest_period_paye_la`, while the number living in `r paye_la_min_area` was `r condi_text(paye_la_min_val,"up")` by `r abs2(paye_la_min_val)`%.
+
+-   Overall, the number of payrolled employees were still below pre-pandemic levels in `r paye_la_count_below_feb20` out of `r paye_la_count_tot` London authorities (including City of London, see map).
+
+<a href="#top">Back to top</a>
+
+```{r results="asis", echo=FALSE}
+# This code is needed to force background of Leaflet map to be white
+cat("
+<style>
+.leaflet-container {
+    background: #FFF;
+}
+</style>
+")
+```
+
+```{r paye borough map, echo=FALSE,fig.cap = map_cap, out.width='100%'}
+
+# Produces interactive map of boroughs with change in payrolled employees
+
+#Read the shape file from the drive
+boroughs <- readOGR(dsn = "Y:/Labour Market Update R Project/London map data/statistical-gis-boundaries-london/ESRI",
+                    layer = "London_Borough_Excluding_MHW",
+                    verbose = FALSE) %>%
+  spTransform(CRS("+proj=longlat +datum=WGS84"))
+
+# Prepare data
+paye_la_stats_geo <- paye_la_stats %>%
+  mutate(tooltip= paste("Change: ", perc_form(change_perc_since_feb20),"%", "\n", sep = "")) %>% 
+  rename(GSS_CODE=gss_code, value=change_perc_since_feb20) %>% #Necessary since the shape files use upper caps variable names
+  filter(new_date == max(new_date)) 
+
+#Make a function to make things easier
+
+map_function <- function(data, polygons, bins, palette, map_title){
+
+  #Join data to polygons
+  polygons@data <- left_join(polygons@data, data, by="GSS_CODE")
+  
+  #Create the palette
+  pal <- colorBin(palette, domain = polygons$value, bins = bins)
+  
+  #Make tool tip
+  labels <- sprintf(
+    "<strong>%s</strong><br/>%s",
+    polygons$NAME, polygons$tooltip
+  ) %>% lapply(htmltools::HTML)
+
+  
+  #Make map
+  map_output <- leaflet() %>%
+    addPolygons(data = polygons,
+                fillColor = ~pal(value),
+                weight = 1,
+                opacity = 1,
+                color = "grey",
+                fillOpacity = 0.8,
+                label = labels,
+                labelOptions = labelOptions(
+                  style = list("font-weight" = "normal", padding = "3px 8px"),
+                  textsize = "15px",
+                  direction = "auto")) %>%
+    addLegend(pal = pal, values = polygons$value, opacity = 0.8,
+              title = map_title,
+              position = "bottomright", labFormat = labelFormat(between = "% to ", suffix="%"))
+  
+  return(map_output)
+}
+
+# NB: THE BINS BELOW MUST BE CHANGED WHEN VALUES CHANGE!
+bins <- c(-8,-6,-4,-2, 0,2,4,6,8)
+
+# Colour palette, title and captions
+map_palette <- gla_pal(palette_type = "diverging", main_colours = c("red","blue"), n = 8, remove_margin = "both")
+map_title <- paste0("Change since","<br>" ,"February 2020 (%)")
+map_cap <- paste0("Source: HM Revenue and Customs – Pay As You Earn Real Time Information. Contains Ordnance Survey data Crown copyright and database right [2015]","<br>","<br>", "Note: Estimates are based on where employees live.")
+
+#Run Map
+map_function(paye_la_stats_geo, boroughs, bins, map_palette, map_title)
+
+```
+
+```{r, emp_figures, echo=FALSE}
+
+emp_rate_uk <- perc_form(lfs_stats %>% filter(sex_name == "Total" & date == max(date) & geography_name == "United Kingdom" & value_type_name == "Level" & measures == 20207)  %>% select(total_in_employment_aged_16_to_64),d = digits_perc)
+
+emp_pp_quart_uk <- perc_form(lfs_stats %>% filter(sex_name == "Total" & date == max(date) & geography_name == "United Kingdom"  & value_type_name == "Change on quarter" & measures == 20207)  %>% select(total_in_employment_aged_16_to_64),d = digits_perc)
+
+emp_pp_year_uk <-perc_form(lfs_stats %>% filter(sex_name == "Total" & date == max(date) & geography_name == "United Kingdom"  & value_type_name == "Change on year" & measures == 20207) %>% select(total_in_employment_aged_16_to_64),d = digits_perc)
+
+```
+
+<hr  width="100%" style="background-color: rgb(134,139,142);height: 1.0px;margin: 0;"/>
+
+<br/>
+
+## Employment rate
+
+<br/>
+
+Employment measures the number of people aged 16 and over in paid work and those who had a job that they were temporarily away from. The employment rate is the proportion of people aged between 16 and 64 years who are in employment.
+
+For `r lfs_lastmonth` to `r lfs_newmonth`:
+
+-   The 16-64 employment rate in London was estimated at `r emp_rate`%; this represents `r condi_text(emp_pp_quart,"noun")` of `r abs2(emp_pp_quart)` percentage points (pp) on the previous quarter and `r condi_text(emp_pp_year,"noun")` of `r abs2(emp_pp_year)`pp from a year earlier.
+
+-   The overall UK employment rate was estimated at `r emp_rate_uk`%, `r condi_text(emp_pp_quart_uk,"noun")` of `r abs2(emp_pp_quart_uk)`pp on the quarter and `r condi_text(emp_pp_year_uk,"noun")` of `r abs2(emp_pp_year_uk)`pp on the year.
+
+<a href="#top">Back to top</a>
+
+```{r employ chart, echo=FALSE,fig.cap = empcap, out.width='100%'}
+### The below should be the relevant chart
+employment_rate <- GLALineChart(data_set = lfs_stats, y_var = total_in_employment_aged_16_to_64, 
+                         title = "Employment rate (% of working age population)",
+                         caption = "\nSource: ONS Labour Force Survey.\n\nNote: The margin of error is +/- 1.3% for London and +/- 0.4% for the UK.",
+                         chart_name = "employment", y_limits = c(70,80), nudge_y = c(-0.5, +0.5))
+
+
+#knitr::include_graphics(paste0(MARKDOWN_IMAGES,Sys.Date(),"_","employment",".svg"))
+
+ggplotly(employment_rate,tooltip = "text") %>% 
+  ggla_plotly_settings()    %>% 
+  layout(title = list(text = paste0("<b>","Employment rate (% of working age population)","</b>",
+                                    "<br>"),
+         font = list(size = 22),
+         y = .95, xref = "plot"),
+         xaxis = list(tickfont = list(size = 15)),
+         yaxis = list(tickfont = list(size = 15)),
+         legend = list(font = list(size = 15),title=list(text="")),
+         hovermode = "x") 
+
+empcap <- paste0("Source: ONS Labour Force Survey.","<br>","<br>", "Note: The margin of error is +/- 1.4% for London and +/- 0.4% for the UK.")
+
+
+```
+
+```{r, unem_figures, echo=FALSE}
+
+unem_pp_quart_uk <- perc_form(lfs_stats %>% filter(sex_name == "Total" & date == max(date) & geography_name == "United Kingdom" & value_type_name == "Change on quarter" & measures == 20207) %>% select(total_unemployed_aged_16_and_over),d = digits_perc)
+
+
+unem_pp_year_uk <- perc_form(lfs_stats %>% filter(sex_name == "Total" & date == max(date) & geography_name == "United Kingdom" & value_type_name == "Change on year" & measures == 20207)  %>% select(total_unemployed_aged_16_and_over),d = digits_perc)
+
+```
+
+<hr  width="100%" style="background-color: rgb(134,139,142);height: 1.0px;margin: 0;"/>
+
+<br/>
+
+## Unemployment rate
+
+<br/>
+
+Unemployment measures people without a job who have been actively seeking work within the last four weeks and are available to start work within the next two weeks. The unemployment rate is the proportion of the economically active population who are unemployed.
+
+For `r lfs_lastmonth` to `r lfs_newmonth`:
+
+-   The unemployment rate for London was estimated at `r unem_rate`%; this represents `r condi_text(unem_pp_quart,"noun")` of `r abs2(unem_pp_quart)`pp on the previous quarter and `r condi_text(unem_pp_year,"noun")` of `r abs2(unem_pp_year)`pp from a year earlier.
+
+-   The UK unemployment rate was estimated at `r unem_rate_uk`%, `r condi_text(unem_pp_quart_uk,"noun")` of `r abs2(unem_pp_quart_uk)`pp from the previous quarter and `r condi_text(unem_pp_year_uk,"noun")` of `r abs2(unem_pp_year_uk)`pp on the year.
+
+<a href="#top">Back to top</a>
+
+```{r unemployed chart, echo=FALSE,fig.cap = unempcap, out.width='100%'}
+
+unemployment_rate <- GLALineChart( data_set = lfs_stats, y_var = total_unemployed_aged_16_and_over, 
+                             title = "Unemployment rate (% of economically active)",
+                             caption = "\nSource: ONS Labour Force Survey.\n\nNote: The margin of error is +/- 0.8% for London and +/- 0.2% for the UK.",
+                             chart_name = "unemployment", y_limits = c(0,8), nudge_y = 0.5)
+
+#knitr::include_graphics(paste0(MARKDOWN_IMAGES,Sys.Date(),"_","unemployment",".svg"))
+
+ggplotly(unemployment_rate,tooltip = "text") %>% 
+  ggla_plotly_settings()    %>% 
+  layout(title = list(text = paste0("<b>","Unemployment rate (% of economically active)","</b>",
+                                    "<br>"),
+         font = list(size = 22),
+         y = .95, xref = "plot"),
+         xaxis = list(tickfont = list(size = 15)),
+         yaxis = list(tickfont = list(size = 15)),
+         legend = list(font = list(size = 15),title=list(text="")),
+         hovermode = "x") 
+
+unempcap <- paste0("Source: ONS Labour Force Survey.","<br>","<br>", "Note: The margin of error is +/- 0.8% for London and +/- 0.2% for the UK.")
+
+
+
+```
+
+```{r inact_figures,echo=FALSE}
+
+inact_rate <- perc_form(lfs_stats %>% filter(sex_name == "Total" & date == max(date) & geography_name == "London" & value_type_name == "Level" & measures == 20207)  %>% select(total_economically_inactive_aged_16_to_64),d= digits_perc)
+  
+inact_pp_quart <- perc_form(lfs_stats %>% filter(sex_name == "Total" & date == max(date) & geography_name == "London" & value_type_name == "Change on quarter" & measures == 20207) %>% select(total_economically_inactive_aged_16_to_64),d= digits_perc)
+  
+inact_pp_year <- perc_form(lfs_stats %>% filter(sex_name == "Total" & date == max(date) & geography_name == "London" & value_type_name == "Change on year" & measures == 20207)  %>% select(total_economically_inactive_aged_16_to_64),d= digits_perc)
+
+inact_rate_uk <- perc_form(lfs_stats %>% filter(sex_name == "Total" & date == max(date) & geography_name == "United Kingdom" & value_type_name == "Level" & measures == 20207)  %>% select(total_economically_inactive_aged_16_to_64),d= digits_perc)
+  
+inact_pp_quart_uk <- perc_form(lfs_stats %>% filter(sex_name == "Total" & date == max(date) & geography_name == "United Kingdom" & value_type_name == "Change on quarter" & measures == 20207) %>% select(total_economically_inactive_aged_16_to_64),d= digits_perc)
+  
+inact_pp_year_uk <- perc_form(lfs_stats %>% filter(sex_name == "Total" & date == max(date) & geography_name == "United Kingdom" & value_type_name == "Change on year" & measures == 20207)  %>% select(total_economically_inactive_aged_16_to_64),d= digits_perc)
+
+```
+
+<hr  width="100%" style="background-color: rgb(134,139,142);height: 1.0px;margin: 0;"/>
+
+<br/>
+
+## Economic inactivity rate
+
+<br/>
+
+The economic inactivity rate is the proportion of 16 to 64 year olds not in work and either not looking for or unable to work. This group includes some students, people who are looking after family/home, and people who are too ill to work (most of whom are long-term sick).
+
+For `r lfs_lastmonth` to `r lfs_newmonth`:
+
+-   The rate of economic inactivity in London was estimated at `r inact_rate`%; this represents `r condi_text(inact_pp_quart,"noun")` of `r abs2(inact_pp_quart)`pp on the previous quarter and `r condi_text(inact_pp_year,"noun")` of `r abs2(inact_pp_year)`pp from a year earlier.
+
+-   The UK rate of economic inactivity was `r inact_rate_uk`%, `r condi_text(inact_pp_quart_uk,"noun")` of `r abs2(inact_pp_quart_uk)`pp on the previous quarter and `r condi_text(inact_pp_year_uk,"noun")` of `r abs2(inact_pp_year_uk)`pp on the year.
+
+<a href="#top">Back to top</a>
+
+```{r inactive chart, echo=FALSE,fig.cap = inactcap, out.width='100%'}
+
+econ_inactive <- GLALineChart( data_set = lfs_stats, y_var = total_economically_inactive_aged_16_to_64, 
+                            title =  "Economic inactivity (% of working age population)",
+                             caption = "\nSource: ONS Labour Force Survey.\n\nNote: The margin of error is not published for London, the UK margin is +/- 0.4%.",
+                            chart_name = "inact", y_limits = c(15,25), nudge_y = c(-0.5, +0.5))
+
+#knitr::include_graphics(paste0(MARKDOWN_IMAGES,Sys.Date(),"_","inact",".svg"))
+
+
+ggplotly(econ_inactive,tooltip = "text") %>% 
+  ggla_plotly_settings()    %>% 
+  layout(title = list(text = paste0("<b>","Economic inactivity (% of working age population)","</b>",
+                                    "<br>"),
+         font = list(size = 22),
+         y = .95, xref = "plot"),
+         xaxis = list(tickfont = list(size = 15)),
+         yaxis = list(tickfont = list(size = 15)),
+         legend = list(font = list(size = 15),title=list(text="")),
+         hovermode = "x") 
+
+inactcap <- paste0("Source: ONS Labour Force Survey.","<br>","<br>", "Note: The margin of error is not published for London, the UK margin is +/- 0.4%.")
+
+```
+
+```{r, echo=FALSE}
+
+claimant_count_stats_long <- claimant_count_stats %>% pivot_longer(cols=claimant_count:claimants_as_a_proportion_of_the_workforce,names_to = "measure_type", values_to = "measure_value",values_drop_na = TRUE) %>% 
+  group_by(geography_name,age_name,sex_name,measure_type) %>% 
+  mutate(change_month = measure_value - lag(measure_value,n=1),
+         change_month_percent = 100*(measure_value - lag(measure_value,n=1))/lag(measure_value,n=1),
+         change_year = measure_value - lag(measure_value,n=12),
+         change_year_percent = 100*(measure_value - lag(measure_value,n=12))/lag(measure_value,n=12)) %>% 
+  ungroup
+
+```
+
+```{r claim_figures, echo=FALSE}
+
+claim_period <- claimant_count_stats_long %>%  filter(date == max(date)) %>% filter(row_number()==1) %>% mutate(date = format(date, '%B %Y'))  %>% select(date)
+
+claim_level <- value_form(claimant_count_stats_long %>% filter( sex_name == "Total" & geography_name == "London" & date == max(date) & age_name == "All categories: Age 16+" & measure_type == "claimant_count") %>% select(measure_value),s = signif_thous)
+  
+claim_rate <- perc_form(claimant_count_stats_long %>% filter( sex_name == "Total" & geography_name == "London" & date == max(date) & age_name == "All categories: Age 16+" & measure_type == "claimants_as_a_proportion_of_residents_aged_16_64") %>% select(measure_value),d = digits_perc)
+
+claim_d_year <- value_form(claimant_count_stats_long %>% filter( sex_name == "Total" & geography_name == "London" & date == max(date) & age_name == "All categories: Age 16+" & measure_type == "claimant_count") %>% select(change_year),s = signif_thous)
+  
+claim_p_year <- perc_form(claimant_count_stats_long %>% filter( sex_name == "Total" & geography_name == "London" & date == max(date) & age_name == "All categories: Age 16+" & measure_type == "claimant_count") %>% select(change_year_percent),d = digits_perc)
+  
+claim_d_year_uk <- value_form(claimant_count_stats_long %>% filter( sex_name == "Total" & geography_name == "United Kingdom" & date == max(date) & age_name == "All categories: Age 16+" & measure_type == "claimant_count") %>% select(change_year),s = signif_thous)
+  
+claim_p_year_uk <- perc_form(claimant_count_stats_long %>% filter( sex_name == "Total" & geography_name == "United Kingdom" & date == max(date) & age_name == "All categories: Age 16+" & measure_type == "claimant_count") %>% select(change_year_percent),d = digits_perc)
+
+```
+
+<hr  width="100%" style="background-color: rgb(134,139,142);height: 1.0px;margin: 0;"/>
+
+<br/>
+
+## Claimant count {.tabset}
+
+<br/>
+
+The claimant count is a measure of the number of people claiming benefits principally for the reason of being unemployed. It includes people claiming Jobseeker's Allowance and those claiming Universal Credit who are required to seek work.
+
+The latest data for `r claim_period` show that:
+
+-   There were `r claim_level` people claiming unemployment related benefits in London - equal to a claimant unemployment rate (as a proportion of residents aged 16 to 64) of `r claim_rate`%.
+
+-   The number of claimants in London has `r condi_text(claim_d_year,"increase")` by `r abs2(claim_d_year)`, or `r abs2(claim_p_year)`%, on the year, compared to `r condi_text(claim_d_year,"noun")` of `r abs2(claim_d_year_uk)`, or `r abs2(claim_p_year_uk)`%, for the UK overall.
+
+<a href="#top">Back to top</a>
+
+### Rate of residents aged 16-64
+
+```{r claimant chart, echo=FALSE,fig.cap = claimcap, out.width='100%'}
+
+### Create claimant count charts
+
+claimant_count_percent <- GLALineChart( data_set = claimant_count_stats, y_var = claimants_as_a_proportion_of_residents_aged_16_64, 
+                                suffix = "%", lfs_or_claims = "claims", title =  "Claimant count (as a % of residents aged 16 to 64)",
+                                caption = "\nSource: ONS Claimant Count by sex and age (NSA).\n\nNote: may include some employed claimants on low hours or earnings.",
+                               chart_name = "claimant_count_per", y_limits = c(0,10), nudge_y = 0.5)
+
+#knitr::include_graphics(paste0(MARKDOWN_IMAGES,Sys.Date(),"_","claimant_count_per",".svg"))
+
+ggplotly(claimant_count_percent,tooltip = "text") %>% 
+  ggla_plotly_settings()    %>% 
+  layout(title = list(text = paste0("<b>","Claimant count (as a % of residents aged 16 to 64)","</b>",
+                                    "<br>"),
+         font = list(size = 22),
+         y = .95, xref = "plot"),
+         xaxis = list(tickfont = list(size = 15)),
+         yaxis = list(tickfont = list(size = 15)),
+         legend = list(font = list(size = 15),title=list(text="")),
+         hovermode = "x") 
+
+claimcap <- paste0("Source: ONS Claimant Count by sex and age (NSA).","<br>","<br>", "Note: may include some employed claimants on low hours or earnings.")
+
+  ### Manually plot total London claimants
+
+new_release_text <- claimant_count_stats$date_name[claimant_count_stats$date == max(claimant_count_stats$date)]
+
+
+claimant_count_total <- claimant_count_stats %>%
+                        filter( geography_name == "London" & sex_name == "Total" & !is.na(claimant_count) 
+                                & age_name == "All categories: Age 16+") %>% 
+                        ggplot(mapping = aes(x = date, y = claimant_count, 
+                                             colour = geography_name, group = geography_name)) +
+                        ggla_line(aes(size= geography_name)) +
+                        scale_size_manual(values = c(4 * mm_to_pt, 2 * mm_to_pt)) +
+                        scale_colour_manual(values = pal) +
+                        ggla_highlight(filter_type = "end") +
+                        ggla_highlight(mapping = aes(label = format(claimant_count, big.mark = ",")),
+                                       geom = GeomGLATextHighlight, filter_type = "end",  size = 4.5,
+                                       position = position_nudge(y = 20000),check_overlap = TRUE)+
+                        coord_cartesian(clip = 'off') +
+                        ggla_axisat0() +
+                        scale_y_continuous(expand = c(0, 0), labels = dollar_format(prefix = "", 
+                                                                                    suffix = "", 
+                                                                                    largest_with_cents = 1), 
+                                           limits = c(0,750000)) +
+                        scale_x_date( date_breaks = "2 months",
+                                      date_labels = "%b'%y",
+                                      expand = expansion( mult = c(0.1,0.02))) +
+                        theme(plot.margin = unit(c(1,1,1,1), "cm"))+
+                        labs(title =  "Claimant count in London",
+                             subtitle = paste0("Latest data for period ", new_release_text),
+                             caption = "\nSource: ONS Claimant Count by sex and age (NSA).\n\nNote: May include some employed claimants on low hours or earnings.")+
+                       theme(plot.caption = element_text(color = rgb(166,166,166,maxColorValue = 255)))
+
+ggsave( paste0(MARKDOWN_IMAGES,Sys.Date(),"_","claimant_count",".svg"), device = "svg", width = 8, height = 8, units = "in")
+ggsave( paste0(MARKDOWN_IMAGES,Sys.Date(),"_","claimant_count",".png"), device = "png", width = 8, height = 8, units = "in") 
+
+# knitr::include_graphics(paste0(MARKDOWN_IMAGES,Sys.Date(),"_","claimant_count",".svg"))
+
+  ### Claimant count bar charts (edit variable names)
+
+new_release <- max(claimant_count_stats$date)
+year_ago <- ymd(new_release) - years(1)
+
+
+```
+
+<hr  width="100%" style="background-color: rgb(134,139,142);height: 1.0px;margin: 0;"/>
+
+<br/>
+
+### Year-on-year percentage change
+
+```{r claimant increase, echo = FALSE,fig.cap = claimbarcap, out.width='100%'}
+
+    ### Increases in claimants by age
+pal <- gla_pal(gla_theme = "default", palette_type = "highlight", n = c(1, 1))
+theme_set(theme_gla(gla_theme = "default"))
+
+claimant_count_bar <- claimant_count_stats %>%
+  group_by(sex_name, geography_name, date) %>% 
+  mutate(chart_ranking = case_when( age_name == "All categories: Age 16+" ~ 1,
+                                    TRUE ~ rank((age_name))+1)) %>% 
+  group_by( age_name, sex_name,geography_name) %>% 
+  mutate( annual_change = case_when( date <= as.Date(year_ago) ~ NaN,
+                                     date > as.Date(year_ago) ~ 100*(claimant_count - claimant_count[ date == as.Date(year_ago)])/claimant_count[ date == as.Date(year_ago)])) %>% 
+  ungroup() %>% 
+   filter( sex_name == "Total" & !is.na(annual_change) & (date == max(date)) & 
+            !(age_name %in% c("Aged 16-17", "Aged 18-21", "Aged 18-24", "Aged 50+" , "Age unknown (clerical claims)", "Aged 25-49", "Aged 65+"))
+          & geography_name %in% c("London", "United Kingdom")) %>% 
+  ggplot(mapping = aes(x = reorder(age_name,chart_ranking), 
+                       y = annual_change, 
+                       colour = geography_name , fill=geography_name,
+                       text = paste(age_name, "\n",
+                                    geography_name, "\n",
+                                    "Change in count: ", perc_form(annual_change),"%", "\n",
+                                    sep = ""))) +
+  geom_bar(stat = "identity", position = position_dodge(), width = 0.4) +
+  geom_hline(aes(yintercept=0), colour="gray45") +
+  scale_colour_manual(values = pal) +
+  scale_fill_manual(values = pal) +
+  theme_set(theme_gla(gla_theme = "default")) +
+  scale_y_continuous(limits = c(-50, 10), labels = dollar_format(prefix = "", 
+                                                                 suffix = "%", 
+                                                                 largest_with_cents = 1)) +
+  theme(axis.text.x = element_text(angle = 90, hjust=1, vjust=0.5)) +
+  theme(plot.margin = unit(c(1,1,1,1), "cm"))+
+  labs(title = "Year-on-year percentage change in claimant count",
+       subtitle = paste0("Latest data for period ", format(new_release,"%B %Y")),
+       caption = "\nSource: ONS Claimant Count by sex and age (NSA).\n\nNote: May include some employed claimants on low hours or earnings.") +
+  theme(plot.caption = element_text(color = rgb(166,166,166,maxColorValue = 255)))
+
+ggsave( paste0(MARKDOWN_IMAGES,Sys.Date(),"_","claimant_age_increase.svg"), device = "svg", width = 8, height = 8, units = "in")
+ggsave( paste0(MARKDOWN_IMAGES,Sys.Date(),"_","claimant_age_increase.png"), device = "png", width = 8, height = 8, units = "in")
+
+#knitr::include_graphics(paste0(MARKDOWN_IMAGES,Sys.Date(),"_","claimant_age_increase",".svg"))
+
+ggplotly(claimant_count_bar,tooltip = "text") %>% 
+  ggla_plotly_settings()    %>% 
+  layout(title = list(text = paste0("<b>","Year-on-year percentage change in claimant count","</b>",
+                                    "<br>",
+                                    "<sup>",
+                                    paste0("Latest data for period ", format(new_release,"%B %Y")),
+                                    "</sup>",
+                                    "<br>"),
+                      font = list(size = 22),
+                      y = .95, xref = "plot"),
+         xaxis = list(tickfont = list(size = 15), tickangle = 270),
+         yaxis = list(tickfont = list(size = 15)),
+         legend = list(font = list(size = 15),title=list(text=""))) 
+
+
+claimbarcap <- paste0("Source: ONS Claimant Count by sex and age (NSA).","<br>","<br>", "Note: may include some employed claimants on low hours or earnings.")
+
+
+```
+
+```{r wfj_figures, echo=FALSE}
+
+wfj_newmonth <- wfj_stats %>%  filter(new_date == max(new_date)) %>% filter(row_number()==1) %>% mutate(new_date = format(new_date, '%B %Y'))  %>% select(new_date)
+
+wfj_lastmonth <- wfj_stats %>% filter(new_date == (ymd(max(new_date)) %m+% - months(3))) %>% filter(row_number()==1) %>% mutate(new_date = format(new_date, '%B %Y'))  %>% select(new_date)
+
+wfj_level <- value_form(wfj_stats %>% filter(item_name == "total workforce jobs" & new_date == max(new_date) & geography_name == "London" & measures_name == "Value" & industry_name == "Total") %>% mutate(obs_value=obs_value/1000000) %>% select(obs_value),s=signif_mil, d=digits_mil)
+
+
+wfj_p_quart_uk <- perc_form(100*(wfj_stats %>% filter(item_name == "total workforce jobs" & new_date == max(new_date) & geography_name == "United Kingdom" & measures_name == "Value" & industry_name == "Total") %>% select(obs_value) - wfj_stats %>% filter(item_name == "total workforce jobs" & new_date == (ymd(max(new_date)) %m+% - months(3)) & geography_name == "United Kingdom" & measures_name == "Value" & industry_name == "Total") %>% select(obs_value))/(wfj_stats %>% filter(item_name == "total workforce jobs" & new_date == (ymd(max(new_date)) %m+% - months(3)) & geography_name == "United Kingdom" & measures_name == "Value" & industry_name == "Total") %>% select(obs_value)),d = digits_perc)
+
+
+wfj_p_dec19_uk <- perc_form(100*(wfj_stats %>% filter(item_name == "total workforce jobs" & new_date == max(new_date) & geography_name == "United Kingdom" & measures_name == "Value" & industry_name == "Total") %>% select(obs_value) - wfj_stats %>% filter(item_name == "total workforce jobs" & new_date == (ymd("2019-12-01")) & geography_name == "United Kingdom" & measures_name == "Value" & industry_name == "Total") %>% select(obs_value))/(wfj_stats %>% filter(item_name == "total workforce jobs" & new_date == (ymd("2019-12-01")) & geography_name == "United Kingdom" & measures_name == "Value" & industry_name == "Total") %>% select(obs_value)),d = digits_perc)
+
+wfj_emp_d_dec19 <- value_form(wfj_stats %>% filter(item_name == "employee jobs" & new_date == max(new_date) & geography_name == "London" & measures_name == "Value" & industry_name == "Total") %>% select(obs_value) - wfj_stats %>% filter(item_name == "employee jobs" & new_date == (ymd("2019-12-01")) & geography_name == "London" & measures_name == "Value" & industry_name == "Total") %>% select(obs_value),s = signif_thous)
+  
+wfj_emp_p_dec19 <- perc_form(100*(wfj_stats %>% filter(item_name == "employee jobs" & new_date == max(new_date) & geography_name == "London" & measures_name == "Value" & industry_name == "Total") %>% select(obs_value) - wfj_stats %>% filter(item_name == "employee jobs" & new_date == (ymd("2019-12-01")) & geography_name == "London" & measures_name == "Value" & industry_name == "Total") %>% select(obs_value))/(wfj_stats %>% filter(item_name == "employee jobs" & new_date == (ymd("2019-12-01")) & geography_name == "London" & measures_name == "Value" & industry_name == "Total") %>% select(obs_value)),d = digits_perc)
+
+wfj_self_d_dec19 <- value_form(wfj_stats %>% filter(item_name == "self-employment jobs" & new_date == max(new_date) & geography_name == "London" & measures_name == "Value" & industry_name == "Total") %>% select(obs_value) - wfj_stats %>% filter(item_name == "self-employment jobs" & new_date == (ymd("2019-12-01")) & geography_name == "London" & measures_name == "Value" & industry_name == "Total") %>% select(obs_value),s = signif_thous)
+  
+wfj_self_p_dec19 <- perc_form(100*(wfj_stats %>% filter(item_name == "self-employment jobs" & new_date == max(new_date) & geography_name == "London" & measures_name == "Value" & industry_name == "Total") %>% select(obs_value) - wfj_stats %>% filter(item_name == "self-employment jobs" & new_date == (ymd("2019-12-01")) & geography_name == "London" & measures_name == "Value" & industry_name == "Total") %>% select(obs_value))/(wfj_stats %>% filter(item_name == "self-employment jobs" & new_date == (ymd("2019-12-01")) & geography_name == "London" & measures_name == "Value" & industry_name == "Total") %>% select(obs_value)),d = digits_perc)
+
+
+```
+
+<hr  width="100%" style="background-color: rgb(134,139,142);height: 1.0px;margin: 0;"/>
+
+<br/>
+
+## Summary of headline indicators
+
+<br/>
+
+```{r flextable indicators, echo = FALSE, ft.align="left", out.width='100%'}
+
+#-------------------------------------------------------------------------------
+#  Create the headline stats table as data frame
+#-------------------------------------------------------------------------------
+
+
+condi_arrow <- function(value) {
+  arrow <- case_when( value < 0 ~ "u",
+                      value == 0 ~ "v",
+                      value > 0 ~ "t")
+  return(arrow)
+}
+
+# Create rows to use as subheaders in table
+sub_head_rows <- tibble("geography_name"=c("Employment","Unemployment","Economic Inactivity"),"indicator"=c("emp_","unem_","inact_"),tab_rank=1)
+
+headline_rates <- lfs_stats %>% 
+  filter(sex_name == "Total" & geography_name %in% c("London", "United Kingdom") & date == max(date)) %>% 
+  mutate(measures_name = case_when(measures == 20100 ~ "num",
+                                   measures == 20207 ~ "rate"),
+         val_type = case_when(value_type_name == "Level" ~ "le",
+                              value_type_name == "Change on quarter" ~ "cq",
+                              value_type_name == "Change on year" ~ "cy"),
+         geography_name = case_when(geography_name == "United Kingdom" ~ "UK" ,
+                                   TRUE ~ "London")) %>% 
+  select("date_name", "geography_name","measures_name","val_type","total_in_employment_aged_16_and_over","total_unemployed_aged_16_and_over",
+         "total_economically_inactive_aged_16_and_over","total_in_employment_aged_16_to_64","total_economically_inactive_aged_16_to_64") %>% 
+  pivot_longer(names_to = "obs_type_help", values_to = "obs_value", cols = "total_in_employment_aged_16_and_over":"total_economically_inactive_aged_16_to_64") %>% 
+  mutate(obs_type = case_when(obs_type_help == "total_in_employment_aged_16_and_over" ~ "emp_16_plus",
+                              obs_type_help == "total_unemployed_aged_16_and_over" ~ "unem_16_plus",
+                              obs_type_help == "total_economically_inactive_aged_16_and_over" ~ "inact_16_plus",
+                              obs_type_help == "total_in_employment_aged_16_to_64" ~ "emp_16_64",
+                              obs_type_help == "total_economically_inactive_aged_16_to_64" ~ "inact_16_64")) %>%
+  filter((measures_name=="num" & obs_type %in% c("emp_16_plus","unem_16_plus","inact_16_64")) | 
+            (measures_name=="rate" & obs_type %in% c("emp_16_64","unem_16_plus","inact_16_64"))) %>% #Should make the right combination for table
+  mutate(indicator =  str_extract(obs_type,".*?_")) %>% 
+  mutate(col_name = paste(measures_name,val_type, sep = "_")) %>% 
+  select("date_name","geography_name","obs_value","indicator","col_name") %>% 
+  pivot_wider(names_from = "col_name", values_from = "obs_value") %>% 
+  mutate(num_le = round(num_le/1000,0),
+         num_cq = round(num_cq/1000,0),
+         num_cy = round(num_cy/1000,0),
+         num_cq2 = condi_arrow(num_cq),
+         num_cy2 = condi_arrow(num_cy),
+         rate_cq2 = condi_arrow(rate_cq),
+         rate_cy2 = condi_arrow(rate_cy),
+         tab_rank = case_when(geography_name == "London" ~ 2,
+                              geography_name == "UK" ~ 3)) %>% 
+  bind_rows(sub_head_rows) %>% 
+  arrange(match(indicator,c("emp_","unem_","inact_")), tab_rank) %>% # Row order
+  select("date_name","geography_name","indicator","num_le","num_cq","num_cq2","num_cy","num_cy2","rate_le","rate_cq","rate_cq2","rate_cy","rate_cy2") 
+  
+#-------------------------------------------------------------------------------
+# Format table appearance manually
+#-------------------------------------------------------------------------------
+
+std_border = fp_border(width = 1)
+no_border = fp_border(width = 0)
+
+headline_rates_table <-  flextable(headline_rates, 
+                                  col_keys=c("geography_name","num_le","num_cq","num_cq2","num_cy","num_cy2","rate_le","rate_cq","rate_cq2","rate_cy","rate_cy2")) %>% 
+  colformat_num(
+    big.mark = ",", decimal.mark = ".", digits=0) %>% 
+  font(fontname='Arial', part = "all") %>% 
+  # Setting colors and font of change variables to make indicator arrows
+  font(j = c("num_cq2", "num_cy2", "rate_cq2", "rate_cy2"), fontname ='Marlett') %>% 
+  color( i= ~ indicator %in% "emp_" & num_cq2 %in% "t", j = ~ num_cq2, color = "green") %>%  # Specifically for employment
+  color( i= ~ indicator %in% "emp_" & num_cq2 %in% "u", j = ~ num_cq2, color = "red") %>% 
+  color( i= ~ indicator %in% "emp_" & num_cy2 %in% "t", j = ~ num_cy2, color = "green") %>% 
+  color( i= ~ indicator %in% "emp_" & num_cy2 %in% "u", j = ~ num_cy2, color = "red") %>% 
+  color( i= ~ indicator %in% "emp_" & rate_cq2 %in% "t", j = ~ rate_cq2, color = "green") %>% 
+  color( i= ~ indicator %in% "emp_" & rate_cq2 %in% "u", j = ~ rate_cq2, color = "red") %>% 
+  color( i= ~ indicator %in% "emp_" & rate_cy2 %in% "t", j = ~ rate_cy2, color = "green") %>% 
+  color( i= ~ indicator %in% "emp_" & rate_cy2 %in% "u", j = ~ rate_cy2, color = "red") %>%  
+  color( i= ~ !(indicator %in% "emp_") & num_cq2 %in% "t", j = ~ num_cq2, color = "red") %>% # For the others
+  color( i= ~ !(indicator %in% "emp_") & num_cq2 %in% "u", j = ~ num_cq2, color = "green") %>% 
+  color( i= ~ !(indicator %in% "emp_") & num_cy2 %in% "t", j = ~ num_cy2, color = "red") %>% 
+  color( i= ~ !(indicator %in% "emp_") & num_cy2 %in% "u", j = ~ num_cy2, color = "green") %>% 
+  color( i= ~ !(indicator %in% "emp_") & rate_cq2 %in% "t", j = ~ rate_cq2, color = "red") %>% 
+  color( i= ~ !(indicator %in% "emp_") & rate_cq2 %in% "u", j = ~ rate_cq2, color = "green") %>% 
+  color( i= ~ !(indicator %in% "emp_") & rate_cy2 %in% "t", j = ~ rate_cy2, color = "red") %>% 
+  color( i= ~ !(indicator %in% "emp_") & rate_cy2 %in% "u", j = ~ rate_cy2, color = "green") %>% 
+  color( i= ~ num_cq2 %in% "v", j = ~ num_cq2, color = "orange") %>% # If equal
+  color( i= ~ num_cy2 %in% "v", j = ~ num_cy2, color = "orange") %>% 
+  color( i= ~ rate_cq2 %in% "v", j = ~ rate_cq2, color = "orange") %>% 
+  color( i= ~ rate_cy2 %in% "v", j = ~ rate_cy2, color = "orange") %>% 
+  #color( i= ~ geography_name %in% "London", j = ~ geography_name, color = rgb(109,167,222, maxColorValue = 255)) %>% 
+  #color( i= ~ geography_name %in% "UK", j = ~ geography_name, color = rgb(204,204,204, maxColorValue = 255)) %>% 
+  bold(i= ~ geography_name %in% c("Employment","Unemployment","Economic Inactivity"), j = ~ geography_name) %>% 
+  add_header_row(colwidths = c(1 ,5, 5),
+                 values = c(paste0("Headline estimates for ",headline_rates %>% filter(!is.na(date_name)) %>% filter(row_number()==1)  %>% select(date_name)), "Number* (thousands)","Rate** (%)")) %>% 
+  align(part = "header", align = "center") %>% 
+  set_header_labels( "geography_name"="","num_le"="Latest Estimate","num_cq"="Change on Quarter","num_cq2"="","num_cy"="Change on Year","num_cy2"="","rate_le"="Latest Estimate","rate_cq"="Change on Quarter","rate_cq2"="","rate_cy"="Change on Year","rate_cy2"="") %>% 
+  bold(i=1, part = "header") %>% 
+   add_footer_lines("Source: ONS Labour Force Survey. \n \nNotes: All figures are seasonally adjusted. *Numbers are based on total population (16+, male and female), except for inactivity which is 16-64. **Rates are based on working age population (16–64, male and female), except for the unemployment rate which is age 16+.") %>% 
+  color( part = "footer", color = rgb(166,166,166,maxColorValue = 255)) %>%
+      fontsize(size = 14, part = "all") %>% 
+  # Cell widths
+  width(j=1, width=6, unit="cm") %>% 
+  width(j= ~ num_cq2 + num_cy2 + rate_cq2 + rate_cy2, width=1, unit="cm") %>% 
+  # Merging of header cells
+  merge_at(i=2,j=3:4,part="header") %>%  
+  merge_at(i=2,j=5:6,part="header") %>%  
+  merge_at(i=2,j=8:9,part="header") %>%  
+  merge_at(i=2,j=10:11,part="header") %>%  
+  merge_at(i=1:2,j=1,part="header") %>%  
+  # Custom borders
+  border_outer(part="header") %>% 
+  border_outer(part="body") %>% 
+  hline(i=1,part="header", border=no_border) %>% 
+  hline(i= ~ geography_name %in% c("Employment","Unemployment","Economic Inactivity") ,part="body", border=std_border) %>% 
+  hline(i= ~ geography_name %in% c("UK") ,part="body", border=std_border) %>% 
+  vline(border = std_border, part = "all", j = ~ geography_name ) %>% 
+  vline(border = std_border, part = "all", j = ~ num_cy2 ) %>% 
+  fix_border_issues()
+
+knit_print(headline_rates_table)
+
+
+```
+
+<a href="#top">Back to top</a>
+
+</font>
+
+::: {.tocify-extend-page data-unique="tocify-extend-page" style="height: 0;"}
+:::

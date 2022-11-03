@@ -1,0 +1,34 @@
+/* This CSS file defines how the header and footer HTMLs look like */
+
+body{
+    margin:0;
+
+}
+
+header{
+    width: 100%;
+    background-color: #353d42;
+}
+
+p1 {
+    color: #c2c4c6;
+    font-size: 12pt;
+    line-height: 1em;
+    font-family: 'Arial';
+}
+
+#foot a {
+    color: #c2c4c6;
+    font-size: 12pt;
+    line-height: 1em;
+    font-family: 'Arial';
+    text-decoration: none;
+    display: inline;
+}
+
+
+/* The size of images: */
+#head img{
+  width: 30%;
+  height: auto;
+}

@@ -1,0 +1,77 @@
+
+/* TABLE OF CONTENTS
+
+/* Color of active item */
+
+.list-group-item.active, 
+.list-group-item.active:hover {
+    background-color: #353d42;
+    border-color: #353d42;
+}
+
+
+
+/* Links for tabs */
+
+#multiple a {
+    color: #353d42;
+}
+
+/* Whole document: */
+
+body{
+  font-family: 'Arial';
+  font-size: 14pt;
+  color: rgb(53,61,66);
+  line-height: 1.5em;
+}
+
+foot{
+  font-family: 'Arial';
+  font-size: 12pt;
+  color: rgb(166,166,166);
+  line-height: 1em;
+}
+
+p.caption{
+    font-size: 12pt;
+    color: rgb(166,166,166);
+    line-height: 1em;
+}
+
+/* Headers */
+h1,h2,h3,h4,h5,h6{
+  font-size: 20pt;
+  font-family: Arial;
+  color: rgb(53,61,66);
+
+h1, h2, h3 {
+    margin-top: 84px;
+    margin-bottom: 160px;
+}
+
+/* The title and information */
+h1.title {
+  font-size: 20pt;
+  font-family: Arial;
+  color: rgb(53,61,66);
+}
+
+.author, .date {
+  font-family: 'Arial';
+  font-size: 14pt;
+  color: rgb(137,137,137);
+}
+
+/* Hyperlinks */
+a {
+  color: #337ab7;
+}
+
+.header {
+  padding: 60px;
+  text-align: center;
+  background: #353D42
+  color: white;
+  font-size: 30px;
+}

@@ -1,0 +1,217 @@
+id,parentCode,label.en,description.en
+1816133633,2013265921,Darlington,Darlington
+1816133634,2013265921,County Durham,County Durham
+1816133635,2013265921,Hartlepool,Hartlepool
+1816133636,2013265921,Middlesbrough,Middlesbrough
+1816133637,2013265921,Northumberland,Northumberland
+1816133638,2013265921,Redcar and Cleveland,Redcar and Cleveland
+1816133639,2013265921,Stockton-on-Tees,Stockton-on-Tees
+1816133640,2013265921,Gateshead,Gateshead
+1816133641,2013265921,Newcastle upon Tyne,Newcastle upon Tyne
+1816133642,2013265921,North Tyneside,North Tyneside
+1816133643,2013265921,South Tyneside,South Tyneside
+1816133644,2013265921,Sunderland,Sunderland
+1816133645,2013265922,Blackburn with Darwen,Blackburn with Darwen
+1816133646,2013265922,Blackpool,Blackpool
+1816133647,2013265922,Cheshire East,Cheshire East
+1816133648,2013265922,Cheshire West and Chester,Cheshire West and Chester
+1816133649,2013265922,Halton,Halton
+1816133650,2013265922,Warrington,Warrington
+1816133651,2013265922,Cumbria,Cumbria
+1816133652,2013265922,Bolton,Bolton
+1816133653,2013265922,Bury,Bury
+1816133654,2013265922,Manchester,Manchester
+1816133655,2013265922,Oldham,Oldham
+1816133656,2013265922,Rochdale,Rochdale
+1816133657,2013265922,Salford,Salford
+1816133658,2013265922,Stockport,Stockport
+1816133659,2013265922,Tameside,Tameside
+1816133660,2013265922,Trafford,Trafford
+1816133661,2013265922,Wigan,Wigan
+1816133662,2013265922,Lancashire,Lancashire
+1816133663,2013265922,Knowsley,Knowsley
+1816133664,2013265922,Liverpool,Liverpool
+1816133665,2013265922,Sefton,Sefton
+1816133666,2013265922,St. Helens,St. Helens
+1816133667,2013265922,Wirral,Wirral
+1816133668,2013265923,East Riding of Yorkshire,East Riding of Yorkshire
+1816133669,2013265923,"Kingston upon Hull, City of","Kingston upon Hull, City of"
+1816133670,2013265923,North East Lincolnshire,North East Lincolnshire
+1816133671,2013265923,North Lincolnshire,North Lincolnshire
+1816133672,2013265923,York,York
+1816133673,2013265923,North Yorkshire,North Yorkshire
+1816133674,2013265923,Barnsley,Barnsley
+1816133675,2013265923,Doncaster,Doncaster
+1816133676,2013265923,Rotherham,Rotherham
+1816133677,2013265923,Sheffield,Sheffield
+1816133678,2013265923,Bradford,Bradford
+1816133679,2013265923,Calderdale,Calderdale
+1816133680,2013265923,Kirklees,Kirklees
+1816133681,2013265923,Leeds,Leeds
+1816133682,2013265923,Wakefield,Wakefield
+1816133683,2013265924,Derby,Derby
+1816133684,2013265924,Leicester,Leicester
+1816133685,2013265924,Nottingham,Nottingham
+1816133686,2013265924,Rutland,Rutland
+1816133687,2013265924,Derbyshire,Derbyshire
+1816133688,2013265924,Leicestershire,Leicestershire
+1816133689,2013265924,Lincolnshire,Lincolnshire
+1816133690,2013265924,Northamptonshire,Northamptonshire
+1816133691,2013265924,Nottinghamshire,Nottinghamshire
+1816133692,2013265925,"Herefordshire, County of","Herefordshire, County of"
+1816133693,2013265925,Shropshire,Shropshire
+1816133694,2013265925,Stoke-on-Trent,Stoke-on-Trent
+1816133695,2013265925,Telford and Wrekin,Telford and Wrekin
+1816133696,2013265925,Staffordshire,Staffordshire
+1816133697,2013265925,Warwickshire,Warwickshire
+1816133698,2013265925,Birmingham,Birmingham
+1816133699,2013265925,Coventry,Coventry
+1816133700,2013265925,Dudley,Dudley
+1816133701,2013265925,Sandwell,Sandwell
+1816133702,2013265925,Solihull,Solihull
+1816133703,2013265925,Walsall,Walsall
+1816133704,2013265925,Wolverhampton,Wolverhampton
+1816133705,2013265925,Worcestershire,Worcestershire
+1816133706,2013265926,Bedford,Bedford
+1816133707,2013265926,Central Bedfordshire,Central Bedfordshire
+1816133708,2013265926,Luton,Luton
+1816133709,2013265926,Peterborough,Peterborough
+1816133710,2013265926,Southend-on-Sea,Southend-on-Sea
+1816133711,2013265926,Thurrock,Thurrock
+1816133712,2013265926,Cambridgeshire,Cambridgeshire
+1816133713,2013265926,Essex,Essex
+1816133714,2013265926,Hertfordshire,Hertfordshire
+1816133715,2013265926,Norfolk,Norfolk
+1816133716,2013265926,Suffolk,Suffolk
+1816133717,2013265927,Camden,Camden
+1816133718,2013265927,City of London,City of London
+1816133719,2013265927,Hackney,Hackney
+1816133720,2013265927,Hammersmith and Fulham,Hammersmith and Fulham
+1816133721,2013265927,Haringey,Haringey
+1816133722,2013265927,Islington,Islington
+1816133723,2013265927,Kensington and Chelsea,Kensington and Chelsea
+1816133724,2013265927,Lambeth,Lambeth
+1816133725,2013265927,Lewisham,Lewisham
+1816133726,2013265927,Newham,Newham
+1816133727,2013265927,Southwark,Southwark
+1816133728,2013265927,Tower Hamlets,Tower Hamlets
+1816133729,2013265927,Wandsworth,Wandsworth
+1816133730,2013265927,Westminster,Westminster
+1816133731,2013265927,Barking and Dagenham,Barking and Dagenham
+1816133732,2013265927,Barnet,Barnet
+1816133733,2013265927,Bexley,Bexley
+1816133734,2013265927,Brent,Brent
+1816133735,2013265927,Bromley,Bromley
+1816133736,2013265927,Croydon,Croydon
+1816133737,2013265927,Ealing,Ealing
+1816133738,2013265927,Enfield,Enfield
+1816133739,2013265927,Greenwich,Greenwich
+1816133740,2013265927,Harrow,Harrow
+1816133741,2013265927,Havering,Havering
+1816133742,2013265927,Hillingdon,Hillingdon
+1816133743,2013265927,Hounslow,Hounslow
+1816133744,2013265927,Kingston upon Thames,Kingston upon Thames
+1816133745,2013265927,Merton,Merton
+1816133746,2013265927,Redbridge,Redbridge
+1816133747,2013265927,Richmond upon Thames,Richmond upon Thames
+1816133748,2013265927,Sutton,Sutton
+1816133749,2013265927,Waltham Forest,Waltham Forest
+1816133750,2013265928,Bracknell Forest,Bracknell Forest
+1816133751,2013265928,Brighton and Hove,Brighton and Hove
+1816133752,2013265928,Isle of Wight,Isle of Wight
+1816133753,2013265928,Medway,Medway
+1816133754,2013265928,Milton Keynes,Milton Keynes
+1816133755,2013265928,Portsmouth,Portsmouth
+1816133756,2013265928,Reading,Reading
+1816133757,2013265928,Slough,Slough
+1816133758,2013265928,Southampton,Southampton
+1816133759,2013265928,West Berkshire,West Berkshire
+1816133760,2013265928,Windsor and Maidenhead,Windsor and Maidenhead
+1816133761,2013265928,Wokingham,Wokingham
+1816133762,2013265928,Buckinghamshire,Buckinghamshire
+1816133763,2013265928,East Sussex,East Sussex
+1816133764,2013265928,Hampshire,Hampshire
+1816133765,2013265928,Kent,Kent
+1816133766,2013265928,Oxfordshire,Oxfordshire
+1816133767,2013265928,Surrey,Surrey
+1816133768,2013265928,West Sussex,West Sussex
+1816133769,2013265929,Bath and North East Somerset,Bath and North East Somerset
+1816133770,2013265929,"Bournemouth, Christchurch and Poole","Bournemouth, Christchurch and Poole"
+1816133771,2013265929,"Bristol, City of","Bristol, City of"
+1816133772,2013265929,Cornwall,Cornwall
+1816133773,2013265929,Isles of Scilly,Isles of Scilly
+1816133774,2013265929,North Somerset,North Somerset
+1816133775,2013265929,Plymouth,Plymouth
+1816133776,2013265929,South Gloucestershire,South Gloucestershire
+1816133777,2013265929,Swindon,Swindon
+1816133778,2013265929,Torbay,Torbay
+1816133779,2013265929,Wiltshire,Wiltshire
+1816133780,2013265929,Devon,Devon
+1816133781,2013265929,Dorset,Dorset
+1816133782,2013265929,Gloucestershire,Gloucestershire
+1816133783,2013265929,Somerset,Somerset
+1816133784,2013265930,Isle of Anglesey,Isle of Anglesey
+1816133785,2013265930,Gwynedd,Gwynedd
+1816133786,2013265930,Conwy,Conwy
+1816133787,2013265930,Denbighshire,Denbighshire
+1816133788,2013265930,Flintshire,Flintshire
+1816133789,2013265930,Wrexham,Wrexham
+1816133790,2013265930,Powys,Powys
+1816133791,2013265930,Ceredigion,Ceredigion
+1816133792,2013265930,Pembrokeshire,Pembrokeshire
+1816133793,2013265930,Carmarthenshire,Carmarthenshire
+1816133794,2013265930,Swansea,Swansea
+1816133795,2013265930,Neath Port Talbot,Neath Port Talbot
+1816133796,2013265930,Bridgend,Bridgend
+1816133797,2013265930,Vale of Glamorgan,Vale of Glamorgan
+1816133798,2013265930,Cardiff,Cardiff
+1816133799,2013265930,Rhondda Cynon Taff,Rhondda Cynon Taff
+1816133800,2013265930,Merthyr Tydfil,Merthyr Tydfil
+1816133801,2013265930,Caerphilly,Caerphilly
+1816133802,2013265930,Blaenau Gwent,Blaenau Gwent
+1816133803,2013265930,Torfaen,Torfaen
+1816133804,2013265930,Monmouthshire,Monmouthshire
+1816133805,2013265930,Newport,Newport
+1816133806,2013265931,Aberdeen City,Aberdeen City
+1816133807,2013265931,Aberdeenshire,Aberdeenshire
+1816133808,2013265931,Angus,Angus
+1816133809,2013265931,Argyll and Bute,Argyll and Bute
+1816133810,2013265931,Clackmannanshire,Clackmannanshire
+1816133811,2013265931,Dumfries and Galloway,Dumfries and Galloway
+1816133812,2013265931,Dundee City,Dundee City
+1816133813,2013265931,East Ayrshire,East Ayrshire
+1816133814,2013265931,East Dunbartonshire,East Dunbartonshire
+1816133815,2013265931,East Lothian,East Lothian
+1816133816,2013265931,East Renfrewshire,East Renfrewshire
+1816133817,2013265931,City of Edinburgh,City of Edinburgh
+1816133818,2013265931,Na h-Eileanan Siar,Na h-Eileanan Siar
+1816133819,2013265931,Falkirk,Falkirk
+1816133820,2013265931,Fife,Fife
+1816133821,2013265931,Glasgow City,Glasgow City
+1816133822,2013265931,Highland,Highland
+1816133823,2013265931,Inverclyde,Inverclyde
+1816133824,2013265931,Midlothian,Midlothian
+1816133825,2013265931,Moray,Moray
+1816133826,2013265931,North Ayrshire,North Ayrshire
+1816133827,2013265931,North Lanarkshire,North Lanarkshire
+1816133828,2013265931,Orkney Islands,Orkney Islands
+1816133829,2013265931,Perth and Kinross,Perth and Kinross
+1816133830,2013265931,Renfrewshire,Renfrewshire
+1816133831,2013265931,Scottish Borders,Scottish Borders
+1816133832,2013265931,Shetland Islands,Shetland Islands
+1816133833,2013265931,South Ayrshire,South Ayrshire
+1816133834,2013265931,South Lanarkshire,South Lanarkshire
+1816133835,2013265931,Stirling,Stirling
+1816133836,2013265931,West Dunbartonshire,West Dunbartonshire
+1816133837,2013265931,West Lothian,West Lothian
+1816133838,2013265932,Antrim and Newtownabbey,Antrim and Newtownabbey
+1816133839,2013265932,"Armagh City, Banbridge and Craigavon","Armagh City, Banbridge and Craigavon"
+1816133840,2013265932,Belfast,Belfast
+1816133841,2013265932,Causeway Coast and Glens,Causeway Coast and Glens
+1816133842,2013265932,Derry City and Strabane,Derry City and Strabane
+1816133843,2013265932,Fermanagh and Omagh,Fermanagh and Omagh
+1816133844,2013265932,Lisburn and Castlereagh,Lisburn and Castlereagh
+1816133845,2013265932,Mid and East Antrim,Mid and East Antrim
+1816133846,2013265932,Mid Ulster,Mid Ulster
+1816133847,2013265932,"Newry, Mourne and Down","Newry, Mourne and Down"
+1816133848,2013265932,Ards and North Down,Ards and North Down
