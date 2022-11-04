@@ -13,3 +13,6 @@ _old/
 
 # Ignore thumbs file
 Thumbs.db
+
+# Ignore warning file
+DO NOT MANUALLY EDIT WITHIN THIS FOLDER.txt
