@@ -1,10 +1,14 @@
 # Ignore all archive folders
 _old/
 
-# Ignore the files in output folders
+# Ignore the files in output folders, but keep folders
 /IMAGES/MAIN/**
 /IMAGES/AD_HOC/**
 /INTERMEDIATE/**
+
+!/IMAGES/MAIN/.gitkeep
+!/IMAGES/AD_HOC/.gitkeep
+!/INTERMEDIATE/.gitkeep
 
 # Ignore HTML output files
 /SCRIPTS/*.html
