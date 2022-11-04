@@ -11,7 +11,8 @@
   # Set paths
   INPUT <- paste0(here::here(),"/INPUT/")
   INTERMEDIATE <- paste0(here::here(),"/INTERMEDIATE/")
-  IMAGES <- paste0(here::here(),"/IMAGES/MAIN/")
+  IMAGES <- paste0(here::here(),"/OUTPUT/IMAGES/MAIN/")
+  HTML_OUT <- paste0(here::here(),"/OUTPUT/HTML/")
   FORMATTING <- paste0(here::here(),"/FORMATTING/")
   SCRIPTS <- paste0(here::here(),"/SCRIPTS/")
   SUBSCRIPTS <- paste0(SCRIPTS,"/SUBSCRIPTS/")
@@ -37,7 +38,7 @@
   
   # Produce LMU markdown
   rmarkdown::render(paste0(SCRIPTS,"01b LMU markdown content.Rmd"),
-                    output_file = paste0("LMU ", format(Sys.Date(),"%B %Y"), 
+                    output_file = paste0(HTML_OUT,"LMU ", format(Sys.Date(),"%B %Y"), 
                                         ".html"))
   
 #...............................................................................
@@ -54,7 +55,8 @@
   # Set paths
   INPUT <- paste0(here::here(),"/INPUT/")
   INTERMEDIATE <- paste0(here::here(),"/INTERMEDIATE/")
-  IMAGES <- paste0(here::here(),"/IMAGES/MAIN/")
+  IMAGES <- paste0(here::here(),"/OUTPUT/IMAGES/MAIN/")
+  HTML_OUT <- paste0(here::here(),"/OUTPUT/HTML/")
   FORMATTING <- paste0(here::here(),"/FORMATTING/")
   SCRIPTS <- paste0(here::here(),"/SCRIPTS/")
   SUBSCRIPTS <- paste0(SCRIPTS,"/SUBSCRIPTS/")
@@ -63,7 +65,6 @@
   source(paste0(SUBSCRIPTS,"GLAE_packages_load",".r"))
   
   # Inputs such as paths and borough codes in Nomis
-  source(paste0(SUBSCRIPTS,"GLAE_initial",".r"))  
   source(paste0(SUBSCRIPTS,"GLAE_data_presets",".r"))
   
   # Run the subscripts necessary for markdown
@@ -73,6 +74,6 @@
   source(paste0(SUBSCRIPTS,"GLAE_CCLB_dataload",".r"))
 
   rmarkdown::render(here::here("SCRIPTS",paste0("02 CCLB markdown.Rmd")),
-                    output_file = paste0("CCLB ", format(Sys.Date(),"%B %Y"), 
+                    output_file = paste0(HTML_OUT,"CCLB ", format(Sys.Date(),"%B %Y"), 
                                          ".html"))
   

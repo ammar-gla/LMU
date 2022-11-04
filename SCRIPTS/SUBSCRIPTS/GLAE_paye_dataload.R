@@ -2,36 +2,82 @@
 # LOAD AND PROCESS ALL PAYE DATA ----
 #_______________________________________________________________________________
 
-# Check if there is a file this month, otherwise take previous month
+# New method (Nov-2022) for downloading and loading PAYE data
+# Check if we have passed data release date referenced in list
+#- If date is passed:
+#-- download the latest PAYE data from the current month
+#-- depending on the month, designate the appropriate prior dataset for detailed data
+#-If date is not passed:
+#-- download previous month's PAYE data
+#-- designate the appropriate prior datasets for detailed data
 
-paye_online_path_now <- paste0("https://www.ons.gov.uk/file?uri=/employmentandlabourmarket/peopleinwork/earningsandworkinghours/datasets/realtimeinformationstatisticsreferencetableseasonallyadjusted/current/",
-                               paste0("rtisa",tolower(format(Sys.Date(),'%b%Y'))),
-                               ".xlsx")
-
-paye_online_path_prev <-  paste0("https://www.ons.gov.uk/file?uri=/employmentandlabourmarket/peopleinwork/earningsandworkinghours/datasets/realtimeinformationstatisticsreferencetableseasonallyadjusted/current/",
-                                 paste0("rtisa",tolower(format(floor_date(Sys.Date(),"month")-months(1),'%b%Y'))),
-                                 ".xlsx")
+#...............................................................................
+# Determine latest data ----
+#...............................................................................
 
 
-# Actual control
-if (urlFileExist(paye_online_path_now)==TRUE) {
-  paye_online_path <- paye_online_path_now
-}  else {
-  paye_online_path <- paye_online_path_prev
+release_dates <- c("2022-01-18","2022-02-15","2022-03-15","2022-04-12","2022-05-17",
+                   "2022-06-14","2022-07-19","2022-08-16","2022-09-13","2022-10-11",
+                   "2022-11-15","2022-12-13","2023-01-17","2023-02-14","2023-03-14",
+                   "2023-04-18","2023-05-16","2023-06-13","2023-07-11","2023-08-15",
+                   "2023-09-12","2023-10-17","2023-11-14","2023-12-12")
+release_dates_form <- as.Date(release_dates) # returns R dates for the dates above
+
+
+# Loop through dates from oldest to newest and replace datasets when appropriate
+for (i in 1:length(release_dates_form)) {
+  if (release_dates_form[i] <= Sys.Date()) { #If we passed the day, assign dataset name
+    
+    month_remainder <- lubridate::month(release_dates_form[i]) %% 3 # Check which dataset is updated
+    month_format <- format(release_dates_form[i],'%b%Y')
+    
+    latest_paye_overall_name <- tolower(paste0("raw_paye_rtisa",month_format,".xlsx")) # this will be overridden to contain latest only
+    
+    # Assign for each of the detailed dataasets
+    if (month_remainder == 0) {
+      latest_paye_locauth_name <- tolower(paste0("raw_paye_rtisa",month_format,".xlsx"))
+    } else if (month_remainder==1) {
+      latest_paye_nuts1age_name <- tolower(paste0("raw_paye_rtisa",month_format,".xlsx"))
+    } else if (month_remainder==2) {
+      latest_paye_nuts1ind_name <- tolower(paste0("raw_paye_rtisa",month_format,".xlsx"))
+    }
+  }
 }
 
-#### Download latest PAYE file ----
-raw_paye <- download.file( url = paye_online_path,
-                           destfile = paste0(INTERMEDIATE,Sys.Date(),"_raw_paye.xlsx"),
-                           mode = "wb")
 
 
-paye_emp_stats <- readxl::read_excel(path = paste0(INTERMEDIATE,Sys.Date(),"_raw_paye.xlsx"), sheet = "7. Employees (NUTS1)", skip = 6) %>% 
+# Download the three most recent datasets
+paye_online_path <- "https://www.ons.gov.uk/file?uri=/employmentandlabourmarket/peopleinwork/earningsandworkinghours/datasets/realtimeinformationstatisticsreferencetableseasonallyadjusted/current/"
+
+for (dta_name in c(latest_paye_locauth_name,latest_paye_nuts1age_name,latest_paye_nuts1ind_name)) {
+  
+  dta_name_url <- gsub("raw_paye_","",dta_name) # name as it appears on ONS website
+  download_path <- paste0(paye_online_path,dta_name_url)
+  
+  # Check if link exists
+  stopifnot("URL path for PAYE data does not exist"=urlFileExist(download_path)==TRUE)
+  
+  # Download
+  download.file(url = download_path,
+                destfile = paste0(INTERMEDIATE,dta_name),
+                mode = "wb")
+  
+}
+
+# Clean up
+rm(month_remainder,month_format,dta_name,i,dta_name_url,download_path)
+
+#...............................................................................
+# Generate overall latest data ----
+#...............................................................................
+
+
+paye_emp_stats <- readxl::read_excel(path = paste0(INTERMEDIATE,latest_paye_overall_name), sheet = "7. Employees (NUTS1)", skip = 6) %>% 
   mutate(date_day=my(Date),
          measure_name = "emps") %>% 
   select(date_day, London, UK,measure_name) 
 
-paye_pay_stats <- readxl::read_excel(path = paste0(INTERMEDIATE,Sys.Date(),"_raw_paye.xlsx"), sheet = "8. Median pay (NUTS1)", skip = 6) %>% 
+paye_pay_stats <- readxl::read_excel(path = paste0(INTERMEDIATE,latest_paye_overall_name), sheet = "8. Median pay (NUTS1)", skip = 6) %>% 
   mutate(date_day=my(Date),
          measure_name = "median_pay") %>% 
   select(date_day, London, UK,measure_name) 
@@ -69,12 +115,12 @@ remove(paye_emp_stats) #do not remove paye_pay_stats as needed for CPIH below
 paye_overall_last_month <- format(max(paye_stats$date_day),"%B %Y")
 
 #### PAYE NUTS2 ----
-paye_nuts2_emp_stats <- readxl::read_excel(path = paste0(INTERMEDIATE,Sys.Date(),"_raw_paye.xlsx"), sheet = "11. Employees (NUTS2)", skip = 6) %>% 
+paye_nuts2_emp_stats <- readxl::read_excel(path = paste0(INTERMEDIATE,latest_paye_overall_name), sheet = "11. Employees (NUTS2)", skip = 6) %>% 
   mutate( date_day = dmy(paste0("01",Date)),
           measure_name="emps")   %>% 
   select(date_day,measure_name, "Inner London - West",	"Inner London - East",	"Outer London - East and North East",	"Outer London - South",	"Outer London - West and North West")
 
-paye_nuts2_pay_stats <- readxl::read_excel(path = paste0(INTERMEDIATE,Sys.Date(),"_raw_paye.xlsx"), sheet = "12. Median pay (NUTS2)", skip = 6) %>% 
+paye_nuts2_pay_stats <- readxl::read_excel(path = paste0(INTERMEDIATE,latest_paye_overall_name), sheet = "12. Median pay (NUTS2)", skip = 6) %>% 
   mutate( date_day = dmy(paste0("01",Date)),
           measure_name="median_pay")  %>%
   select(date_day,measure_name, "Inner London - West",	"Inner London - East",	"Outer London - East and North East",	"Outer London - South",	"Outer London - West and North West")
@@ -114,35 +160,6 @@ remove(paye_nuts2_emp_stats,paye_nuts2_pay_stats)
 ## - (a) By Age*NUTS1: 1,4,7,10
 ## - (b) By Industry*NUTS1: 2,5,8,11
 ## - (c) By LA: 3,6,9,12
-
-# These need to be updated as such:
-## If division remainder is 0, then (c); if 1 then (a), if 2 then (b)
-## If it is LMU release day, ensure data is updated
-
-current_month <- lubridate::month(Sys.Date())
-#month_remainder <- current_month %% 3
-release_dates <- c("2022-01-18","2022-02-15","2022-03-15","2022-04-12","2022-05-17",
-                   "2022-06-14","2022-07-19","2022-08-16","2022-09-13","2022-10-11",
-                   "2022-11-15","2022-12-13","2023-01-17","2023-02-14","2023-03-14",
-                   "2023-04-18","2023-05-16","2023-06-13","2023-07-11","2023-08-15",
-                   "2023-09-12","2023-10-17","2023-11-14","2023-12-12")
-release_dates_form <- as.Date(release_dates) # returns R dates for the dates above
-
-# Loop through dates from oldest to newest and replace datasets when appropriate
-for (i in 1:length(release_dates_form)) {
-  if (release_dates_form[i] <= Sys.Date()) { #If we passed the day, assign dataset name
-    
-    month_remainder <- lubridate::month(release_dates_form[i]) %% 3 # Check which dataset is updated
-    
-    if (month_remainder == 0) {
-      latest_paye_locauth_name <- paste0(release_dates_form[i],"_raw_paye.xlsx")
-    } else if (month_remainder==1) {
-      latest_paye_nuts1age_name <- paste0(release_dates_form[i],"_raw_paye.xlsx")
-    } else if (month_remainder==2) {
-      latest_paye_nuts1ind_name <- paste0(release_dates_form[i],"_raw_paye.xlsx")
-    }
-  }
-}
 
 #...............................................................................
 #### PAYE by age ----
