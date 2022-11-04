@@ -10,3 +10,6 @@ _old/
 /SCRIPTS/*.html
 
 .Rproj.user
+
+# Ignore thumbs file
+Thumbs.db
