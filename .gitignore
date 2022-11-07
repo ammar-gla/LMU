@@ -2,18 +2,16 @@
 _old/
 
 # Ignore the files in output folders, but keep folders
-/OUTPUT/IMAGES/MAIN/**
-/OUTPUT/IMAGES/AD_HOC/**
-/OUTPUT/HTML/**
-/INTERMEDIATE/**
+/OUTPUT/IMAGES/MAIN/*
+/OUTPUT/IMAGES/AD_HOC/*
+/OUTPUT/HTML/*
+/INTERMEDIATE/*
 
 !/OUTPUT/IMAGES/MAIN/.gitkeep
 !/OUTPUT/IMAGES/AD_HOC/.gitkeep
 !/OUTPUT/HTML/.gitkeep
 !/INTERMEDIATE/.gitkeep
 
-# Ignore HTML output files
-/SCRIPTS/*.html
 
 .Rproj.user
 
