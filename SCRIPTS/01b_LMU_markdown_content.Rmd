@@ -31,9 +31,11 @@ output:
 ```
 
 ```{r, main_figures ,echo=FALSE}
+
   ### Create all the figures needed for the section below
   # Name format:
-  # _d_: difference, _p_: difference in percent, _pp_: difference in percentage points, _uk: UK level stat, London otherwise
+  # _d_: difference, _p_: difference in percent, _pp_: difference in percentage points,
+  # _uk: UK level stat, London otherwise
   
   # Paye
   paye_d_month <- value_form(paye_stats %>% 
@@ -58,13 +60,15 @@ output:
   # LFS
   lfs_last_month <- lfs_stats %>%
     mutate(month = format(date_day, '%B %Y')) %>%
-    filter(sex_name == "Total"  & geography_name == "London" & value_type_name == "Level" & date_day == max(date_day) & measures == 20207) %>%
+    filter(sex_name == "Total"  & geography_name == "London" & value_type_name == "Level" & date_day == max(date_day) 
+           & measures == 20207) %>%
     pull(month)
   
   lfs_previous_month <- lfs_stats  %>%
     mutate(lag_month = ymd(date_day) - months(2)) %>%
     mutate(lag_month2 = format(lag_month, '%B')) %>%
-    filter(sex_name == "Total"  & geography_name == "London" & value_type_name == "Level" & date_day == max(date_day) & measures == 20207) %>%
+    filter(sex_name == "Total"  & geography_name == "London" & value_type_name == "Level" & date_day == max(date_day) 
+           & measures == 20207) %>%
     pull(lag_month2)
   
   
@@ -75,12 +79,14 @@ output:
                            pull(total_unemployed_aged_16_and_over),d = digits_perc)
   
   unem_pp_quart <- perc_form(lfs_stats %>%
-                               filter(sex_name == "Total" & date_day == max(date_day) & geography_name == "London" 
+                               filter(sex_name == "Total" & date_day == max(date_day) 
+                                      & geography_name == "London" 
                                       & value_type_name == "Change on quarter" & measures == 20207) %>%
                                pull(total_unemployed_aged_16_and_over),d = digits_perc)
   
   
-  unem_pp_year <- perc_form(lfs_stats %>% filter(sex_name == "Total" & date_day == max(date_day) & geography_name == "London" & value_type_name == "Change on year" & measures == 20207)  %>% pull(total_unemployed_aged_16_and_over),d = digits_perc)
+  unem_pp_year <- perc_form(lfs_stats %>% filter(sex_name == "Total" & date_day == max(date_day) 
+                                                 & geography_name == "London" & value_type_name == "Change on year" & measures == 20207)  %>% pull(total_unemployed_aged_16_and_over),d = digits_perc)
   
   unem_rate_uk <- perc_form(lfs_stats %>%
                               filter(sex_name == "Total" & date_day == max(date_day) 
