@@ -36,68 +36,164 @@ output:
   # _d_: difference, _p_: difference in percent, _pp_: difference in percentage points, _uk: UK level stat, London otherwise
   
   # Paye
-  paye_d_month <- value_form(paye_stats %>% filter( date_day == max(date_day) & geography_name=="London" & measure_name=="emps") %>% pull(d_change_mom),s= signif_thous)
+  paye_d_month <- value_form(paye_stats %>% 
+                               filter(date_day == max(date_day) & geography_name=="London" & measure_name=="emps") %>%
+                               pull(d_change_mom),s= signif_thous)
   
-  paye_p_month <- perc_form(100*paye_stats %>% filter( date_day == max(date_day) & geography_name=="London" & measure_name=="emps") %>% pull(p_change_mom),d = digits_perc)
+  paye_p_month <- perc_form(100*paye_stats %>%
+                              filter( date_day == max(date_day) & geography_name=="London" & measure_name=="emps") %>%
+                              pull(p_change_mom),d = digits_perc)
   
-  paye_previous_month <- paye_stats  %>% mutate(lag_month = lag(date_day, n = 1)) %>% mutate(lag_month2 = format(lag_month, '%B')) %>% filter(date_day == max(date_day)) %>% filter(row_number()==1) %>%  pull(lag_month2)
+  paye_previous_month <- paye_stats  %>%
+    mutate(lag_month = lag(date_day, n = 1)) %>%
+    mutate(lag_month2 = format(lag_month, '%B')) %>%
+    filter(date_day == max(date_day)) %>%
+    filter(row_number()==1) %>%
+    pull(lag_month2)
   
-  paye_p_feb20 <- perc_form(100*paye_stats %>% filter(date_day == max(date_day) & geography_name=="London" & measure_name=="emps") %>% pull(p_change_feb20),d = digits_perc)
+  paye_p_feb20 <- perc_form(100*paye_stats %>%
+                              filter(date_day == max(date_day) & geography_name=="London" & measure_name=="emps") %>%
+                              pull(p_change_feb20),d = digits_perc)
   
   # LFS
+  lfs_last_month <- lfs_stats %>%
+    mutate(month = format(date_day, '%B %Y')) %>%
+    filter(sex_name == "Total"  & geography_name == "London" & value_type_name == "Level" & date_day == max(date_day) & measures == 20207) %>%
+    pull(month)
   
-  lfs_last_month <- lfs_stats %>% mutate(month = format(date_day, '%B %Y')) %>% filter(sex_name == "Total"  & geography_name == "London" & value_type_name == "Level" & date_day == max(date_day) & measures == 20207) %>%  pull(month)
-  
-  lfs_previous_month <- lfs_stats  %>% mutate(lag_month = ymd(date_day) %m+% - months(2)) %>% mutate(lag_month2 = format(lag_month, '%B')) %>% filter(sex_name == "Total"  & geography_name == "London" & value_type_name == "Level" & date_day == max(date_day) & measures == 20207) %>%  pull(lag_month2)
+  lfs_previous_month <- lfs_stats  %>%
+    mutate(lag_month = ymd(date_day) - months(2)) %>%
+    mutate(lag_month2 = format(lag_month, '%B')) %>%
+    filter(sex_name == "Total"  & geography_name == "London" & value_type_name == "Level" & date_day == max(date_day) & measures == 20207) %>%
+    pull(lag_month2)
   
   
   # Unem
+  unem_rate <- perc_form(lfs_stats %>%
+                           filter(sex_name == "Total" & date_day == max(date_day) &
+                                    geography_name == "London" & value_type_name == "Level" & measures == 20207) %>%
+                           pull(total_unemployed_aged_16_and_over),d = digits_perc)
   
-  unem_rate <- perc_form(lfs_stats %>% filter(sex_name == "Total" & date_day == max(date_day) & geography_name == "London" & value_type_name == "Level" & measures == 20207) %>% pull(total_unemployed_aged_16_and_over),d = digits_perc)
-  
-  unem_pp_quart <- perc_form(lfs_stats %>% filter(sex_name == "Total" & date_day == max(date_day) & geography_name == "London" & value_type_name == "Change on quarter" & measures == 20207) %>% pull(total_unemployed_aged_16_and_over),d = digits_perc)
+  unem_pp_quart <- perc_form(lfs_stats %>%
+                               filter(sex_name == "Total" & date_day == max(date_day) & geography_name == "London" 
+                                      & value_type_name == "Change on quarter" & measures == 20207) %>%
+                               pull(total_unemployed_aged_16_and_over),d = digits_perc)
   
   
   unem_pp_year <- perc_form(lfs_stats %>% filter(sex_name == "Total" & date_day == max(date_day) & geography_name == "London" & value_type_name == "Change on year" & measures == 20207)  %>% pull(total_unemployed_aged_16_and_over),d = digits_perc)
   
-  unem_rate_uk <- perc_form(lfs_stats %>% filter(sex_name == "Total" & date_day == max(date_day) & geography_name == "United Kingdom" & value_type_name == "Level" & measures == 20207) %>% pull(total_unemployed_aged_16_and_over),d = digits_perc)
-  
+  unem_rate_uk <- perc_form(lfs_stats %>%
+                              filter(sex_name == "Total" & date_day == max(date_day) 
+                                     & geography_name == "United Kingdom" & value_type_name == "Level" 
+                                     & measures == 20207) %>%
+                              pull(total_unemployed_aged_16_and_over),d = digits_perc)
   
   # Employment
+  emp_rate <- perc_form(lfs_stats %>% 
+                          filter(sex_name == "Total" & date_day == max(date_day) 
+                                 & geography_name == "London" & value_type_name == "Level" & measures == 20207)  %>%
+                          pull(total_in_employment_aged_16_to_64),d = digits_perc)
   
-  emp_rate <- perc_form(lfs_stats %>% filter(sex_name == "Total" & date_day == max(date_day) & geography_name == "London" & value_type_name == "Level" & measures == 20207)  %>% pull(total_in_employment_aged_16_to_64),d = digits_perc)
+  emp_pp_quart <- perc_form(lfs_stats %>%
+                              filter(sex_name == "Total" & date_day == max(date_day) 
+                                     & geography_name == "London"  & value_type_name == "Change on quarter" 
+                                     & measures == 20207)  %>%
+                              pull(total_in_employment_aged_16_to_64),d = digits_perc)
   
-  emp_pp_quart <- perc_form(lfs_stats %>% filter(sex_name == "Total" & date_day == max(date_day) & geography_name == "London"  & value_type_name == "Change on quarter" & measures == 20207)  %>% pull(total_in_employment_aged_16_to_64),d = digits_perc)
+  emp_pp_year <-perc_form(lfs_stats %>%
+                            filter(sex_name == "Total" & date_day == max(date_day) 
+                                   & geography_name == "London"  & value_type_name == "Change on year" 
+                                   & measures == 20207) %>%
+                            pull(total_in_employment_aged_16_to_64),d = digits_perc)
   
-  emp_pp_year <-perc_form(lfs_stats %>% filter(sex_name == "Total" & date_day == max(date_day) & geography_name == "London"  & value_type_name == "Change on year" & measures == 20207) %>% pull(total_in_employment_aged_16_to_64),d = digits_perc)
-  
-  emp_rate_uk <- perc_form(lfs_stats %>% filter(sex_name == "Total" & date_day == max(date_day) & geography_name == "United Kingdom" & value_type_name == "Level" & measures == 20207)  %>% pull(total_in_employment_aged_16_to_64),d = digits_perc)
+  emp_rate_uk <- perc_form(lfs_stats %>%
+                             filter(sex_name == "Total" & date_day == max(date_day) 
+                                    & geography_name == "United Kingdom" & value_type_name == "Level" 
+                                    & measures == 20207)  %>%
+                             pull(total_in_employment_aged_16_to_64),d = digits_perc)
   
   # Inactivity
+  inact_rate <- perc_form(lfs_stats %>%
+                            filter(sex_name == "Total" & date_day == max(date_day) 
+                                   & geography_name == "London" & value_type_name == "Level" & measures == 20207)  %>%
+                            pull(total_economically_inactive_aged_16_to_64),d = digits_perc)
   
-  inact_rate <- perc_form(lfs_stats %>% filter(sex_name == "Total" & date_day == max(date_day) & geography_name == "London" & value_type_name == "Level" & measures == 20207)  %>% pull(total_economically_inactive_aged_16_to_64),d = digits_perc)
+  inact_pp_quart <- perc_form(lfs_stats %>%
+                                filter(sex_name == "Total" & date_day == max(date_day) 
+                                       & geography_name == "London"  & value_type_name == "Change on quarter" 
+                                       & measures == 20207)  %>%
+                                pull(total_economically_inactive_aged_16_to_64),d = digits_perc)
   
-  inact_pp_quart <- perc_form(lfs_stats %>% filter(sex_name == "Total" & date_day == max(date_day) & geography_name == "London"  & value_type_name == "Change on quarter" & measures == 20207)  %>% pull(total_economically_inactive_aged_16_to_64),d = digits_perc)
+  inact_pp_year <-perc_form(lfs_stats %>% 
+                              filter(sex_name == "Total" & date_day == max(date_day) 
+                                     & geography_name == "London"  & value_type_name == "Change on year" 
+                                     & measures == 20207) %>%
+                              pull(total_economically_inactive_aged_16_to_64),d = digits_perc)
   
-  inact_pp_year <-perc_form(lfs_stats %>% filter(sex_name == "Total" & date_day == max(date_day) & geography_name == "London"  & value_type_name == "Change on year" & measures == 20207) %>% pull(total_economically_inactive_aged_16_to_64),d = digits_perc)
-  
-  inact_rate_uk <- perc_form(lfs_stats %>% filter(sex_name == "Total" & date_day == max(date_day) & geography_name == "United Kingdom" & value_type_name == "Level" & measures == 20207)  %>% pull(total_economically_inactive_aged_16_to_64),d = digits_perc)
+  inact_rate_uk <- perc_form(lfs_stats %>%
+                               filter(sex_name == "Total" & date_day == max(date_day) 
+                                      & geography_name == "United Kingdom" & value_type_name == "Level" 
+                                      & measures == 20207)  %>% 
+                               pull(total_economically_inactive_aged_16_to_64),d = digits_perc)
   
   # WFJ
   
-  wfj_year <-  wfj_stats %>% filter(date_day == max(date_day)) %>% filter(row_number()==1) %>% mutate(year=year(date_day)) %>% pull(year)
+  wfj_year <-  wfj_stats %>%
+    filter(date_day == max(date_day)) %>%
+    filter(row_number()==1) %>%
+    mutate(year=year(date_day)) %>%
+    pull(year)
   
-  wfj_newquarter <- wfj_stats %>% ungroup()  %>% filter(date_day == max(date_day)) %>% filter(row_number()==1) %>% pull(quarter_text) 
+  wfj_newquarter <- wfj_stats  %>%
+    filter(date_day == max(date_day)) %>%
+    filter(row_number()==1) %>%
+    pull(quarter_text) 
   
-  wfj_oldquarter <-  wfj_stats %>% ungroup() %>% filter(date_day == (ymd(max(date_day)) %m+% - months(3))) %>% filter(row_number()==1) %>% pull(quarter_text)
+  wfj_oldquarter <-  wfj_stats %>%
+    filter(date_day == (ymd(max(date_day)) - months(3))) %>%
+    filter(row_number()==1) %>%
+    pull(quarter_text)
   
-  wfj_d_quart <- value_form(wfj_stats%>% ungroup()  %>% filter(item_name == "total workforce jobs" & date_day == max(date_day) & geography_name == "London" & measures_name == "Value" & industry_name == "Total") %>% pull(obs_value) - wfj_stats %>% filter(item_name == "total workforce jobs" & date_day == (ymd(max(date_day)) %m+% - months(3)) & geography_name == "London" & measures_name == "Value" & industry_name == "Total") %>% pull(obs_value),s = signif_thous)
+  wfj_d_quart <- value_form(wfj_tot_value_stats  %>%
+                              filter(item_name == "total workforce jobs" & date_day == max(date_day) 
+                                     & geography_name == "London") %>% 
+                              pull(obs_value) - 
+                              wfj_tot_value_stats %>%
+                              filter(item_name == "total workforce jobs" & date_day == (ymd(max(date_day)) - months(3))
+                                     & geography_name == "London") %>%
+                              pull(obs_value),
+                            s = signif_thous)
   
-  wfj_p_quart <- perc_form(100*(wfj_stats %>% filter(item_name == "total workforce jobs" & date_day == max(date_day) & geography_name == "London" & measures_name == "Value" & industry_name == "Total") %>% pull(obs_value) - wfj_stats %>% filter(item_name == "total workforce jobs" & date_day == (ymd(max(date_day)) %m+% - months(3)) & geography_name == "London" & measures_name == "Value" & industry_name == "Total") %>% pull(obs_value))/(wfj_stats %>% filter(item_name == "total workforce jobs" & date_day == (ymd(max(date_day)) %m+% - months(3)) & geography_name == "London" & measures_name == "Value" & industry_name == "Total") %>% pull(obs_value)),d = digits_perc)
+  wfj_p_quart <- perc_form(100*(wfj_tot_value_stats %>%
+                                  filter(item_name == "total workforce jobs" & date_day == max(date_day) 
+                                         & geography_name == "London") %>%
+                                  pull(obs_value) /
+                                  (wfj_tot_value_stats %>% 
+                                     filter(item_name == "total workforce jobs" 
+                                            & date_day == (ymd(max(date_day)) - months(3)) 
+                                            & geography_name == "London" ) %>% 
+                                     pull(obs_value))-1),
+                           d = digits_perc)
   
-  wfj_d_dec19 <- value_form(wfj_stats %>% filter(item_name == "total workforce jobs" & date_day == max(date_day) & geography_name == "London" & measures_name == "Value" & industry_name == "Total") %>% pull(obs_value) - wfj_stats %>% filter(item_name == "total workforce jobs" & date_day == (ymd("2019-12-01")) & geography_name == "London" & measures_name == "Value" & industry_name == "Total") %>% pull(obs_value),s = signif_thous)
+  wfj_d_dec19 <- value_form(wfj_tot_value_stats %>% 
+                              filter(item_name == "total workforce jobs" & date_day == max(date_day) 
+                                     & geography_name == "London" ) %>%
+                              pull(obs_value) / 
+                              (wfj_tot_value_stats %>% filter(item_name == "total workforce jobs" 
+                                                              & date_day == (ymd("2019-12-01")) 
+                                                              & geography_name == "London") %>%
+                                 pull(obs_value)),
+                               s = signif_thous)
   
-  wfj_p_dec19 <- perc_form(100*(wfj_stats %>% filter(item_name == "total workforce jobs" & date_day == max(date_day) & geography_name == "London" & measures_name == "Value" & industry_name == "Total") %>% pull(obs_value) - wfj_stats %>% filter(item_name == "total workforce jobs" & date_day == (ymd("2019-12-01")) & geography_name == "London" & measures_name == "Value" & industry_name == "Total") %>% pull(obs_value))/(wfj_stats %>% filter(item_name == "total workforce jobs" & date_day == (ymd("2019-12-01")) & geography_name == "London" & measures_name == "Value" & industry_name == "Total") %>% pull(obs_value)),d = digits_perc)
+  wfj_p_dec19 <- perc_form(100*(wfj_tot_value_stats %>%
+                                  filter(item_name == "total workforce jobs" & date_day == max(date_day) 
+                                         & geography_name == "London" ) %>%
+                                  pull(obs_value) / 
+                                  (wfj_tot_value_stats %>% 
+                                  filter(item_name == "total workforce jobs" & date_day == (ymd("2019-12-01")) 
+                                         & geography_name == "London") %>% 
+                                    pull(obs_value))-1),
+                           d = digits_perc)
 
 ```
 
@@ -810,14 +906,14 @@ cat("
   
   # Find industries with lowest and highest growth in recent data
   
-  sector_thresh_paye <- 25000
+  paye_sector_thresh <- 25000
   
   lowest_growth_ind_paye <- paye_nuts1ind_stats %>% 
-    filter(date_day == max(date_day) & geography_name == "London" & measure_name=="emps" & measure_value>=sector_thresh_paye & !is.na(p_change_feb20)) %>%
+    filter(date_day == max(date_day) & geography_name == "London" & measure_name=="emps" & measure_value>=paye_sector_thresh & !is.na(p_change_feb20)) %>%
     slice_min(p_change_feb20,n=3) 
   
   highest_growth_ind_paye <- paye_nuts1ind_stats %>% 
-    filter(date_day == max(date_day) & geography_name == "London" & measure_name=="emps" & measure_value>=sector_thresh_paye & !is.na(p_change_feb20)) %>%
+    filter(date_day == max(date_day) & geography_name == "London" & measure_name=="emps" & measure_value>=paye_sector_thresh & !is.na(p_change_feb20)) %>%
     slice_max(p_change_feb20,n=3) 
   
   ## Find industry names and growth figures
@@ -859,7 +955,7 @@ Some industries have yet to recover from the pandemic. Comparing **`r paye_ind_l
   
   # Select industries large in London, here 25k
   lon_large_inds_paye <- paye_nuts1ind_stats %>%
-    filter( measure_name=="emps" & measure_value >=sector_thresh_paye 
+    filter( measure_name=="emps" & measure_value >=paye_sector_thresh 
             & geography_name =="London" & date_day == max(date_day)) %>% 
     pull(industry_name_simple)
   
@@ -1272,25 +1368,76 @@ The latest data for `r claim_period` show that:
 
 ```{r wfj_figures, echo=FALSE}
 
-wfj_latest_month <- wfj_stats %>%  filter(date_day == max(date_day)) %>% filter(row_number()==1) %>% mutate(date_day = format(date_day, '%B %Y'))  %>% pull(date_day)
+wfj_latest_month <- format(max(wfj_stats$date_day),'%B %Y')
 
-wfj_previous_month <- wfj_stats %>% filter(date_day == (ymd(max(date_day)) %m+% - months(3))) %>% filter(row_number()==1) %>% mutate(date_day = format(date_day, '%B %Y'))  %>% pull(date_day)
-
-wfj_level <- value_form(wfj_stats %>% filter(item_name == "total workforce jobs" & date_day == max(date_day) & geography_name == "London" & measures_name == "Value" & industry_name == "Total") %>% mutate(obs_value=obs_value/1000000) %>% pull(obs_value),s=signif_mil, d=digits_mil)
+wfj_previous_month <- format(max(wfj_stats$date_day)- months(3),'%B %Y')
 
 
-wfj_p_quart_uk <- perc_form(100*(wfj_stats %>% filter(item_name == "total workforce jobs" & date_day == max(date_day) & geography_name == "United Kingdom" & measures_name == "Value" & industry_name == "Total") %>% pull(obs_value) - wfj_stats %>% filter(item_name == "total workforce jobs" & date_day == (ymd(max(date_day)) %m+% - months(3)) & geography_name == "United Kingdom" & measures_name == "Value" & industry_name == "Total") %>% pull(obs_value))/(wfj_stats %>% filter(item_name == "total workforce jobs" & date_day == (ymd(max(date_day)) %m+% - months(3)) & geography_name == "United Kingdom" & measures_name == "Value" & industry_name == "Total") %>% pull(obs_value)),d = digits_perc)
+wfj_level <- value_form((wfj_tot_value_stats %>% 
+                           filter(item_name == "total workforce jobs" & date_day == max(date_day) 
+                                  & geography_name == "London")  %>%
+                           pull(obs_value))/1000000,s=signif_mil, d=digits_mil)
 
 
-wfj_p_dec19_uk <- perc_form(100*(wfj_stats %>% filter(item_name == "total workforce jobs" & date_day == max(date_day) & geography_name == "United Kingdom" & measures_name == "Value" & industry_name == "Total") %>% pull(obs_value) - wfj_stats %>% filter(item_name == "total workforce jobs" & date_day == (ymd("2019-12-01")) & geography_name == "United Kingdom" & measures_name == "Value" & industry_name == "Total") %>% pull(obs_value))/(wfj_stats %>% filter(item_name == "total workforce jobs" & date_day == (ymd("2019-12-01")) & geography_name == "United Kingdom" & measures_name == "Value" & industry_name == "Total") %>% pull(obs_value)),d = digits_perc)
+wfj_p_quart_uk <- perc_form(100*(wfj_tot_value_stats %>% 
+                                   filter(item_name == "total workforce jobs" & date_day == max(date_day) 
+                                          & geography_name == "United Kingdom") %>% pull(obs_value) / 
+                                   (wfj_tot_value_stats %>%
+                                      filter(item_name == "total workforce jobs" 
+                                             & date_day == (ymd(max(date_day)) - months(3)) 
+                                             & geography_name == "United Kingdom") %>% 
+                                      pull(obs_value))-1),
+                            d = digits_perc)
 
-wfj_emp_d_dec19 <- value_form(wfj_stats %>% filter(item_name == "employee jobs" & date_day == max(date_day) & geography_name == "London" & measures_name == "Value" & industry_name == "Total") %>% pull(obs_value) - wfj_stats %>% filter(item_name == "employee jobs" & date_day == (ymd("2019-12-01")) & geography_name == "London" & measures_name == "Value" & industry_name == "Total") %>% pull(obs_value),s = signif_thous)
-  
-wfj_emp_p_dec19 <- perc_form(100*(wfj_stats %>% filter(item_name == "employee jobs" & date_day == max(date_day) & geography_name == "London" & measures_name == "Value" & industry_name == "Total") %>% pull(obs_value) - wfj_stats %>% filter(item_name == "employee jobs" & date_day == (ymd("2019-12-01")) & geography_name == "London" & measures_name == "Value" & industry_name == "Total") %>% pull(obs_value))/(wfj_stats %>% filter(item_name == "employee jobs" & date_day == (ymd("2019-12-01")) & geography_name == "London" & measures_name == "Value" & industry_name == "Total") %>% pull(obs_value)),d = digits_perc)
 
-wfj_self_d_dec19 <- value_form(wfj_stats %>% filter(item_name == "self-employment jobs" & date_day == max(date_day) & geography_name == "London" & measures_name == "Value" & industry_name == "Total") %>% pull(obs_value) - wfj_stats %>% filter(item_name == "self-employment jobs" & date_day == (ymd("2019-12-01")) & geography_name == "London" & measures_name == "Value" & industry_name == "Total") %>% pull(obs_value),s = signif_thous)
-  
-wfj_self_p_dec19 <- perc_form(100*(wfj_stats %>% filter(item_name == "self-employment jobs" & date_day == max(date_day) & geography_name == "London" & measures_name == "Value" & industry_name == "Total") %>% pull(obs_value) - wfj_stats %>% filter(item_name == "self-employment jobs" & date_day == (ymd("2019-12-01")) & geography_name == "London" & measures_name == "Value" & industry_name == "Total") %>% pull(obs_value))/(wfj_stats %>% filter(item_name == "self-employment jobs" & date_day == (ymd("2019-12-01")) & geography_name == "London" & measures_name == "Value" & industry_name == "Total") %>% pull(obs_value)),d = digits_perc)
+wfj_p_dec19_uk <- perc_form(100*(wfj_tot_value_stats %>% 
+                                   filter(item_name == "total workforce jobs" & date_day == max(date_day)
+                                          & geography_name == "United Kingdom") %>%
+                                   pull(obs_value) / 
+                                   (wfj_tot_value_stats %>% 
+                                      filter(item_name == "total workforce jobs" & date_day == (ymd("2019-12-01")) 
+                                             & geography_name == "United Kingdom") %>%
+                                      pull(obs_value))-1),
+                            d = digits_perc)
+
+wfj_emp_d_dec19 <- value_form(wfj_tot_value_stats %>%
+                                filter(item_name == "employee jobs" & date_day == max(date_day) 
+                                       & geography_name == "London" ) %>%
+                                pull(obs_value) - 
+                                wfj_tot_value_stats %>%
+                                filter(item_name == "employee jobs" & date_day == (ymd("2019-12-01")) 
+                                       & geography_name == "London") %>%
+                                pull(obs_value),
+                              s = signif_thous)
+
+wfj_emp_p_dec19 <- perc_form(100*(wfj_tot_value_stats %>%
+                                    filter(item_name == "employee jobs" & date_day == max(date_day) 
+                                           & geography_name == "London") %>% pull(obs_value) / 
+                                    (wfj_tot_value_stats %>% 
+                                       filter(item_name == "employee jobs" & date_day == (ymd("2019-12-01"))
+                                              & geography_name == "London" ) %>% 
+                                       pull(obs_value))-1),
+                             d = digits_perc)
+
+wfj_self_d_dec19 <- value_form(wfj_tot_value_stats %>% 
+                                 filter(item_name == "self-employment jobs" & date_day == max(date_day) 
+                                        & geography_name == "London") %>%
+                                 pull(obs_value) -
+                                 (wfj_tot_value_stats %>%
+                                    filter(item_name == "self-employment jobs" & date_day == (ymd("2019-12-01")) 
+                                           & geography_name == "London") %>%
+                                    pull(obs_value)),
+                               s = signif_thous)
+
+wfj_self_p_dec19 <- perc_form(100*(wfj_tot_value_stats %>%
+                                     filter(item_name == "self-employment jobs" & date_day == max(date_day) 
+                                            & geography_name == "London" ) %>%
+                                     pull(obs_value) / 
+                                     (wfj_tot_value_stats %>% 
+                                        filter(item_name == "self-employment jobs" & date_day == (ymd("2019-12-01")) 
+                                               & geography_name == "London") %>% 
+                                        pull(obs_value))-1),
+                              d = digits_perc)
 
 
 ```
@@ -1375,15 +1522,15 @@ The latest data for `r wfj_latest_month` show that:
 ```{r,echo=FALSE}
 # Find industries with lowest and highest growth in recent data
   
-  sector_thresh <- 25000
+  wfj_sector_thresh <- 25000
   
-  lowest_growth <- wfj_stats %>% filter(item_name == "total workforce jobs" & date_day == max(date_day) & geography_name == "London" & measures_name == "Value" & obs_value>=sector_thresh & !is.na(change_p_dec19_within_date_rank)) %>% slice_max(change_p_dec19_within_date_rank,n=3) 
+  lowest_growth <- wfj_stats %>% filter(item_name == "total workforce jobs" & date_day == max(date_day) & geography_name == "London" & measures_name == "Value" & obs_value>=wfj_sector_thresh & !is.na(change_p_dec19_within_date_rank)) %>% slice_max(change_p_dec19_within_date_rank,n=3) 
   
-  highest_growth <- wfj_stats %>% filter(item_name == "total workforce jobs" & date_day == max(date_day) & geography_name == "London" & measures_name == "Value" & obs_value>=sector_thresh & !is.na(change_p_dec19_within_date_rank)) %>% slice_min(change_p_dec19_within_date_rank,n=3) 
+  highest_growth <- wfj_stats %>% filter(item_name == "total workforce jobs" & date_day == max(date_day) & geography_name == "London" & measures_name == "Value" & obs_value>=wfj_sector_thresh & !is.na(change_p_dec19_within_date_rank)) %>% slice_min(change_p_dec19_within_date_rank,n=3) 
   
-  lowest_growth_q <- wfj_stats %>% filter(item_name == "total workforce jobs" & date_day == max(date_day) & geography_name == "London" & measures_name == "Value" & obs_value>=sector_thresh & !is.na(change_p_quart_within_date_rank)) %>% slice_max(change_p_quart_within_date_rank,n=3) 
+  lowest_growth_q <- wfj_stats %>% filter(item_name == "total workforce jobs" & date_day == max(date_day) & geography_name == "London" & measures_name == "Value" & obs_value>=wfj_sector_thresh & !is.na(change_p_quart_within_date_rank)) %>% slice_max(change_p_quart_within_date_rank,n=3) 
   
-  highest_growth_q <- wfj_stats %>% filter(item_name == "total workforce jobs" & date_day == max(date_day) & geography_name == "London" & measures_name == "Value" & obs_value>=sector_thresh & !is.na(change_p_quart_within_date_rank)) %>% slice_min(change_p_quart_within_date_rank,n=3) 
+  highest_growth_q <- wfj_stats %>% filter(item_name == "total workforce jobs" & date_day == max(date_day) & geography_name == "London" & measures_name == "Value" & obs_value>=wfj_sector_thresh & !is.na(change_p_quart_within_date_rank)) %>% slice_min(change_p_quart_within_date_rank,n=3) 
   
   ## Find industry names and growth figures
   ## by year
@@ -1445,7 +1592,7 @@ Between December 2019 and `r wfj_latest_month`\*:
 
 <a href="#top">Back to top</a>
 
-<foot>\*Note: excluding sectors with less than `r value_form(sector_thresh,s = signif_thous)` jobs in London. </foot>
+<foot>\*Note: excluding sectors with less than `r value_form(wfj_sector_thresh,s = signif_thous)` jobs in London. </foot>
 
 ```{r wfj sector, echo=FALSE,fig.cap = wfjseccap, out.width='100%',fig.alt=paste0("Horizontal bar chart showing the change in the number of workforce jobs in separate bars for London and the UK, for each industry, from December 2019 to ",wfj_latest_month)}
   
@@ -1453,15 +1600,15 @@ Between December 2019 and `r wfj_latest_month`\*:
   
   # Select industries large in London, e.g. 20k+
   lon_large_inds <- wfj_stats %>%
-    filter( item_name == "total workforce jobs" & date_day == max(date_day) & measures_name == "Value" & obs_value>=sector_thresh 
+    filter( item_name == "total workforce jobs" & date_day == max(date_day) & measures_name == "Value" & obs_value>=wfj_sector_thresh 
             & geography_name =="London") %>% 
     select(industry_name_simple)
   
   lon_large_inds <- unlist(lon_large_inds)
   
   wjf_industry_bar <- wfj_stats %>%
-    filter( item_name == "total workforce jobs" & date_day == max(date_day) & measures_name == "Value" & industry_name_simple %in% lon_large_inds
-            & geography_name %in% c("London", "United Kingdom")) %>% 
+    filter( item_name == "total workforce jobs" & date_day == max(date_day) & measures_name == "Value" &
+              industry_name_simple %in% lon_large_inds & geography_name %in% c("London", "United Kingdom")) %>% 
     group_by(geography_name) %>% #To ensure chart ranking is correct, make rank based on London and assign within sector
     mutate(chart_ranking = case_when( 
       industry_name_simple == "Total" & geography_name=="London" ~ 1,
@@ -1536,7 +1683,7 @@ Between December 2019 and `r wfj_latest_month`\*:
   #  Create the headline stats table as data frame
   #-------------------------------------------------------------------------------
   
-  
+  # Simple function for formatting conditional arrows in table
   condi_arrow <- function(value) {
     arrow <- case_when( value < 0 ~ "u",
                         value == 0 ~ "v",
@@ -1591,10 +1738,10 @@ Between December 2019 and `r wfj_latest_month`\*:
   std_border = fp_border(width = 1)
   no_border = fp_border(width = 0)
   
-  headline_rates_table <-  flextable(headline_rates, 
-                                     col_keys=c("geography_name","num_le","num_cq","num_cq2","num_cy","num_cy2","rate_le","rate_cq","rate_cq2","rate_cy","rate_cy2")) %>% 
-    colformat_num(
-      big.mark = ",", decimal.mark = ".", digits=0) %>% 
+  headline_rates_table <-  flextable(headline_rates,
+                                     col_keys=c("geography_name","num_le","num_cq","num_cq2","num_cy","num_cy2",
+                                                "rate_le","rate_cq","rate_cq2","rate_cy","rate_cy2")) %>% 
+    colformat_num(big.mark = ",", decimal.mark = ".", digits=0) %>% 
     font(fontname='Arial', part = "all") %>% 
     # Setting colors and font of change variables to make indicator arrows
     font(j = c("num_cq2", "num_cy2", "rate_cq2", "rate_cy2"), fontname ='Marlett') %>% 
@@ -1620,11 +1767,15 @@ Between December 2019 and `r wfj_latest_month`\*:
     color( i= ~ rate_cy2 %in% "v", j = ~ rate_cy2, color = "orange") %>% 
     #color( i= ~ geography_name %in% "London", j = ~ geography_name, color = rgb(109,167,222, maxColorValue = 255)) %>% 
     #color( i= ~ geography_name %in% "UK", j = ~ geography_name, color = rgb(204,204,204, maxColorValue = 255)) %>% 
-    bold(i= ~ geography_name %in% c("Employment","Unemployment","Economic Inactivity"), j = ~ geography_name) %>% 
+    bold(i= ~ geography_name %in% c("Employment","Unemployment","Economic Inactivity"),
+         j = ~ geography_name) %>% 
     add_header_row(colwidths = c(1 ,5, 5),
                    values = c(paste0("Headline estimates for ",headline_rates %>% filter(!is.na(date_name)) %>% filter(row_number()==1)  %>% pull(date_name)), "Number* (thousands)","Rate** (%)")) %>% 
     align(part = "header", align = "center") %>% 
-    set_header_labels( "geography_name"="","num_le"="Latest Estimate","num_cq"="Change on Quarter","num_cq2"="","num_cy"="Change on Year","num_cy2"="","rate_le"="Latest Estimate","rate_cq"="Change on Quarter","rate_cq2"="","rate_cy"="Change on Year","rate_cy2"="") %>% 
+    set_header_labels("geography_name"="","num_le"="Latest Estimate",
+                      "num_cq"="Change on Quarter","num_cq2"="",
+                      "num_cy"="Change on Year","num_cy2"="","rate_le"="Latest Estimate",
+                      "rate_cq"="Change on Quarter","rate_cq2"="","rate_cy"="Change on Year","rate_cy2"="") %>% 
     bold(i=1, part = "header") %>% 
     add_footer_lines("Source: ONS Labour Force Survey. \n \nNotes: All figures are seasonally adjusted. *Numbers are based on total population (16+, male and female), except for inactivity which is 16-64. **Rates are based on working age population (16–64, male and female), except for the unemployment rate which is age 16+.") %>% 
     color( part = "footer", color = rgb(166,166,166,maxColorValue = 255)) %>%
@@ -1642,7 +1793,9 @@ Between December 2019 and `r wfj_latest_month`\*:
     border_outer(part="header") %>% 
     border_outer(part="body") %>% 
     hline(i=1,part="header", border=no_border) %>% 
-    hline(i= ~ geography_name %in% c("Employment","Unemployment","Economic Inactivity") ,part="body", border=std_border) %>% 
+    hline(i= ~ geography_name %in% c("Employment","Unemployment","Economic Inactivity") ,
+          part="body",
+          border=std_border) %>% 
     hline(i= ~ geography_name %in% c("UK") ,part="body", border=std_border) %>% 
     vline(border = std_border, part = "all", j = ~ geography_name ) %>% 
     vline(border = std_border, part = "all", j = ~ num_cy2 ) %>% 
@@ -1650,6 +1803,8 @@ Between December 2019 and `r wfj_latest_month`\*:
   
   knit_print(headline_rates_table)
 
+  # Remove attributes for cleanup
+  rm(std_border,no_border)
 
 ```
 

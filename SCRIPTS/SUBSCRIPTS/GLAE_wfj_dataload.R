@@ -52,4 +52,8 @@ wfj_stats <- nomis_get_data(id = "NM_130_1", time = c("2010-01", "latest"), geog
   arrange(date_day,geography,item,measures,industry)
 
 
+# Helper dataset to reduce number of filters used in markdown
+wfj_tot_value_stats <- wfj_stats %>% 
+  filter(measures_name == "Value" & industry_name == "Total")
+
 fwrite(wfj_stats, file = paste0(INTERMEDIATE,Sys.Date(),"_wfj.csv"), na = "NaN")
