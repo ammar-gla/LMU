@@ -12,8 +12,10 @@ _old/
 !/OUTPUT/HTML/.gitkeep
 !/INTERMEDIATE/.gitkeep
 
-
+# Ignore R project user info and any potential history files
 .Rproj.user
+.Rhistory
+.Rapp.history
 
 # Ignore thumbs file
 Thumbs.db
