@@ -18,7 +18,8 @@ cc_stats_detailed_raw <- ClaimantCountDownload(sa_nsa="nsa", #use NSA throughout
                                                time_period = c("2020-01","latest"),
                                                save_intermediate = TRUE,
                                                geography=c(london_geo_code,uk_geo_code,boroughs_group),
-                                               measures_v = 20100) %>% 
+                                               measures_v = 20100,
+                                               data_name="detail") %>% 
   mutate(measure_name=snakecase::to_snake_case(measure_name),  #since it is easier to reference
          dataset_name="detailed") #to easily separate regions appearing twice
 
@@ -28,6 +29,7 @@ cc_stats_region_raw <- ClaimantCountDownload(sa_nsa="nsa",
                                              save_intermediate = TRUE,
                                              geography = c(london_geo_code,regions_geo_code),
                                              measures_v = 20100,
+                                             data_name = "region",
                                              sex=0,
                                              age=0) %>% 
   mutate(measure_name=snakecase::to_snake_case(measure_name), #since it is easier to reference

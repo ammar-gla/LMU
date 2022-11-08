@@ -14,18 +14,19 @@ if(!exists("paye_pay_stats"))
 ### Download inflation data ----
 #.............................................................................
 
+# TODO: create functionality to download only most recent CPIH data
 download.file( url = "https://www.ons.gov.uk/generator?format=csv&uri=/economy/inflationandpriceindices/timeseries/l522/mm23",
-               destfile = paste0(INTERMEDIATE,Sys.Date(),"_raw_cpih.csv"),
+               destfile = paste0(OTHERDATA,format(Sys.Date(),"%y_%m_%d"),"_raw_cpih.csv"),
                mode = "wb")
 download.file( url = "https://www.ons.gov.uk/generator?format=csv&uri=/economy/inflationandpriceindices/timeseries/l55o/mm23",
-               destfile = paste0(INTERMEDIATE,Sys.Date(),"_raw_cpih_rate.csv"),
+               destfile = paste0(OTHERDATA,format(Sys.Date(),"%y_%m_%d"),"_raw_cpih_rate.csv"),
                mode = "wb")
 
-cpih_rate <- read.csv(paste0(INTERMEDIATE,Sys.Date(),"_raw_cpih_rate.csv"), header=FALSE, stringsAsFactors=FALSE) %>% 
+cpih_rate <- read.csv(paste0(OTHERDATA,format(Sys.Date(),"%y_%m_%d"),"_raw_cpih_rate.csv"), header=FALSE, stringsAsFactors=FALSE) %>% 
   rename(month_date=V1,cpih_yoy=V2) %>% 
   filter(grepl("\\d{4} \\w{3}",month_date))
 
-cpih_stats <- read.csv(paste0(INTERMEDIATE,Sys.Date(),"_raw_cpih.csv"), header=FALSE, stringsAsFactors=FALSE) %>% 
+cpih_stats <- read.csv(paste0(OTHERDATA,format(Sys.Date(),"%y_%m_%d"),"_raw_cpih.csv"), header=FALSE, stringsAsFactors=FALSE) %>% 
   rename(month_date=V1,cpih_index_2015=V2) %>% 
   filter(grepl("\\d{4} \\w{3}",month_date)) %>% 
   merge(cpih_rate,by="month_date") %>%   # Merge with annual rate

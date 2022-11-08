@@ -147,18 +147,18 @@ urlFileExist <- function(url){
 #.............................................................................
 
 LFS_line_chart <- function( data_set = lfs_stats, ### This function has been written to work specifically with the NM_59_1 dataset
-                          lfs_or_claims = "lfs",
-                          x_var = date_day, ### Assumed that this will be a line chart with dates on the x-axis
-                          min_x_var = as.Date("2015-01-01"), 
-                          y_var = NULL, ### See document "[today's date]colnames.csv" for variables available for charting
-                          geography = c("London", "United Kingdom"),
-                          suffix = "%",
-                          y_limits = c(0,100),
-                          nudge_y = NULL,
-                          title = NULL,
-                          subtitle = NULL,
-                          caption = "",
-                          chart_name = NULL) {
+                            lfs_or_claims = "lfs",
+                            x_var = date_day, ### Assumed that this will be a line chart with dates on the x-axis
+                            min_x_var = as.Date("2015-01-01"), 
+                            y_var = NULL, ### See document "[today's date]colnames.csv" for variables available for charting
+                            geography = c("London", "United Kingdom"),
+                            suffix = "%",
+                            y_limits = c(0,100),
+                            nudge_y = NULL,
+                            title = NULL,
+                            subtitle = NULL,
+                            caption = "",
+                            chart_name = NULL) {
   
   pal <- gla_pal(gla_theme = "default", palette_type = "highlight", n = c(1, 1))
   theme_set(theme_gla(gla_theme = "default"))
@@ -486,103 +486,158 @@ ggplot_map_output <- function(dataset,
 # Data downloading ----
 #...............................................................................
 
-HeadlineDownload <- function( data_series = "NM_59_1", 
-                              time_period = c("1996-01","latest"), 
-                              save_intermediate = TRUE,
-                              econ_activity=c(0,3,7,9), #main ones used
-                              sex=c(5,6,7), #all sexes
-                              geography = NULL) {
+# Determine what most recent release date is for labour market (lm) dataand download relevant dataset
+lm_release_date_checker <- function(release_dates_vector = release_dates,
+                                    wfj=FALSE) # Account for quarterly WFJ releases
+  {
+  for (i in 1:length(release_dates)) {
+    
+    if (wfj==FALSE) { #simply take latest date
+      if (release_dates[i] <= Sys.Date()) last_release_date <-  release_dates[i]
+    }
+    else if (wfj==TRUE) { #only keep if WFJ released on date
+      if (release_dates[i] <= Sys.Date() & month(release_dates[i]) %in% release_months_wfj) last_release_date <-  release_dates[i]
+    }
+  }
   
-  ### Download both absolute and percentage figures from NOMIS
+  return(last_release_date)
+}
+
+# Download LM data from Nomis
+HeadlineDownload <- function(data_series = "NM_59_1", 
+                             time_period = c("1996-01","latest"), 
+                             save_intermediate = TRUE,
+                             data_name = NULL, # used for differentiating datasets
+                             release_date = NULL, #should be formatted as 'yy_mm_dd' 
+                             econ_activity=c(0,3,7,9), #main ones used
+                             sex=c(5,6,7), #all sexes
+                             geography = NULL) {
   
-  raw_nomis <- nomis_get_data( id = data_series, 
-                               geography = geography,
-                               time = time_period,
-                               economic_activity=econ_activity,
-                               sex=sex)
+  # If release date is left as null, run the function to check against most recent release date
+  if (is.null(release_date)) {
+    release_date <- lm_release_date_checker()
+  }
   
-  ### Store downloads as dataframes
+  release_date_form <- format(release_date,"%y_%m_%d")
   
-  lfs_stats <- raw_nomis %>% 
-    mutate(DATE_DAY = as.Date(paste0(DATE, "-01"))) %>% 
-    filter(MEASURES %in% c(20207,20100) & !is.na(OBS_VALUE)) %>%
-    select( "DATE_DAY", "DATE_NAME", "SEX_NAME", "GEOGRAPHY_NAME", "ECONOMIC_ACTIVITY_NAME", "VALUE_TYPE_NAME", "OBS_VALUE","MEASURES","MEASURES_NAME") %>% 
-    pivot_wider( names_from = ECONOMIC_ACTIVITY_NAME, values_from = OBS_VALUE) %>%  
-    clean_names()
+  # Check if most recent data is already downloaded. If not, download it now
+  data_file_name_path_csv <- paste0(OTHERDATA,release_date_form,"_LFS_",data_name,".csv")
+  data_file_name_path_rds <- paste0(RDATA,release_date_form,"_LFS_",data_name,".rds")
   
-  ### Save intermediate dataframes if specified
+  if (file.exists(data_file_name_path_rds)) { # Load existing file
+    
+    lfs_stats <- readRDS(file=data_file_name_path_rds)
+  }
   
-  if( save_intermediate == TRUE) {
-    lfs_stats %>% 
-      fwrite(file = paste0(INTERMEDIATE,Sys.Date(),"_LFS_update.csv"))
+  else { # Download data
+    
+    ### Download both absolute and percentage figures from NOMIS
+    raw_nomis <- nomis_get_data( id = data_series, 
+                                 geography = geography,
+                                 time = time_period,
+                                 economic_activity=econ_activity,
+                                 sex=sex)
+    
+    ### Store downloads as dataframes
+    lfs_stats <- raw_nomis %>% 
+      mutate(DATE_DAY = as.Date(paste0(DATE, "-01"))) %>% 
+      filter(MEASURES %in% c(20207,20100) & !is.na(OBS_VALUE)) %>%
+      select( "DATE_DAY", "DATE_NAME", "SEX_NAME", "GEOGRAPHY_NAME", "ECONOMIC_ACTIVITY_NAME", "VALUE_TYPE_NAME", "OBS_VALUE","MEASURES","MEASURES_NAME") %>% 
+      pivot_wider( names_from = ECONOMIC_ACTIVITY_NAME, values_from = OBS_VALUE) %>%  
+      clean_names()
+    
+    ### Save intermediate dataframes if specified
+    if(save_intermediate == TRUE) {
+      
+      fwrite(lfs_stats, file = data_file_name_path_csv)
+      saveRDS(lfs_stats,file = data_file_name_path_rds)
+    }
     
   }
   
-  data.table::fwrite( as.data.frame(colnames(lfs_stats)), file = paste0(INTERMEDIATE,"/",Sys.Date(),"_colnames.csv"))
-  
-  return( lfs_stats)
-  
+  return(lfs_stats)
 }
 
 #...............................................................................
 
-# Define function used
-ClaimantCountDownload <- function( sa_nsa = NULL,
-                                   time_period = c("1996-01","latest"),
-                                   save_intermediate = TRUE,
-                                   geography_v = c(london_geo_code,eng_geo_code,uk_geo_code,regions_geo_code,boroughs_group),
-                                   measures_v = 20100,
-                                   ...) {
+# Claimant count data download
+ClaimantCountDownload <- function(sa_nsa = NULL,
+                                  time_period = c("1996-01","latest"),
+                                  save_intermediate = TRUE,
+                                  geography_v = c(london_geo_code,eng_geo_code,uk_geo_code,regions_geo_code,boroughs_group),
+                                  measures_v = 20100,
+                                  data_name = NULL, # used for differentiating datasets
+                                  release_date = NULL, #should be formatted as 'yy_mm_dd' 
+                                  ...) {
   
   checkmate::assert_choice(sa_nsa, choices = c("sa","nsa"))
   
-  ## Select data series depending on SA NSA
-  if (sa_nsa=="sa") {
-    data_series <- "NM_11_1"
-    
-    ### Download the claimant count data from NOMIS
-    raw_nomis <- nomis_get_data(
-      id = data_series, 
-      geography = geography_v,
-      measures = measures_v,
-      time = time_period,
-      ...) 
-    
-    ### Clean data
-    cc_stats <- raw_nomis %>% 
-      mutate(DATE_DAY = as.Date(paste0(DATE, "-01"))) %>% 
-      filter(OBS_STATUS!="Q") %>% # removes data points which do not have value, e.g. rate for X age group 
-      clean_names() %>% 
-      select( date_day, date_name, geography_name, sex_name, obs_value, measures_name) %>% #notice the different var names to NSA
-      rename(measure_value=obs_value)
-  }
-  else {
-    data_series <- "NM_162_1"
-    
-    ### Download the claimant count data from NOMIS
-    raw_nomis <- nomis_get_data(
-      id = data_series, 
-      geography = geography_v,
-      measures = measures_v,
-      time = time_period,
-      ...) 
-    
-    ### Clean data
-    cc_stats <- raw_nomis %>% 
-      mutate( DATE_DAY = as.Date(paste0(DATE, "-01"))) %>% 
-      filter(OBS_STATUS!="Q") %>% # removes data points which do not have value, e.g. rate for X age group 
-      clean_names() %>% 
-      select( date_day, date_name, geography_name, gender_name, age_name, obs_value, measure_name) %>% 
-      rename( sex_name = gender_name,measure_value=obs_value)
-    
+  # If release date is left as null, run the function to check against most recent release date
+  if (is.null(release_date)) {
+    release_date <- lm_release_date_checker()
   }
   
-  ### Save intermediate dataframes if specified
-  if( save_intermediate == TRUE) {
-    fwrite(cc_stats, file = paste0(INTERMEDIATE,Sys.Date(),"_",data_series,"_claimant.csv"))
+  release_date_form <- format(release_date,"%y_%m_%d")
+  
+  # Check if most recent data is already downloaded. If not, download it now
+  data_file_name_path_csv <- paste0(OTHERDATA,release_date_form,"_CC_",data_name,".csv")
+  data_file_name_path_rds <- paste0(RDATA,release_date_form,"_CC_",data_name,".rds")
+  
+  if (file.exists(data_file_name_path_rds)) { # Load existing file
+    
+    cc_stats <-readRDS(file=data_file_name_path_rds)
+  }
+  
+  else { # Download data
+    
+    ## Select data series depending on SA NSA
+    if (sa_nsa=="sa") {
+      data_series <- "NM_11_1"
+      
+      ### Download the claimant count data from NOMIS
+      raw_nomis <- nomis_get_data(
+        id = data_series, 
+        geography = geography_v,
+        measures = measures_v,
+        time = time_period,
+        ...) 
+      
+      ### Clean data
+      cc_stats <- raw_nomis %>% 
+        mutate(DATE_DAY = as.Date(paste0(DATE, "-01"))) %>% 
+        filter(OBS_STATUS!="Q") %>% # removes data points which do not have value, e.g. rate for X age group 
+        clean_names() %>% 
+        select( date_day, date_name, geography_name, sex_name, obs_value, measures_name) %>% #notice the different var names to NSA
+        rename(measure_value=obs_value)
+    }
+    else {
+      data_series <- "NM_162_1"
+      
+      ### Download the claimant count data from NOMIS
+      raw_nomis <- nomis_get_data(
+        id = data_series, 
+        geography = geography_v,
+        measures = measures_v,
+        time = time_period,
+        ...) 
+      
+      ### Clean data
+      cc_stats <- raw_nomis %>% 
+        mutate( DATE_DAY = as.Date(paste0(DATE, "-01"))) %>% 
+        filter(OBS_STATUS!="Q") %>% # removes data points which do not have value, e.g. rate for X age group 
+        clean_names() %>% 
+        select( date_day, date_name, geography_name, gender_name, age_name, obs_value, measure_name) %>% 
+        rename( sex_name = gender_name,measure_value=obs_value)
+      
+    }
+    
+    ### Save intermediate dataframes if specified
+    if( save_intermediate == TRUE) {
+      fwrite(cc_stats, file = data_file_name_path_csv)
+      saveRDS(cc_stats,file = data_file_name_path_rds)
+    }
   }
   
   return(cc_stats) 
-  
 }
 

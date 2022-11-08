@@ -10,7 +10,8 @@ _old/
 !/OUTPUT/IMAGES/MAIN/.gitkeep
 !/OUTPUT/IMAGES/AD_HOC/.gitkeep
 !/OUTPUT/HTML/.gitkeep
-!/INTERMEDIATE/.gitkeep
+!/INTERMEDIATE/OTHERDATA/.gitkeep
+!/INTERMEDIATE/RDATA/.gitkeep
 
 # Ignore R project user info and any potential history files
 .Rproj.user

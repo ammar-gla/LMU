@@ -16,21 +16,33 @@
 #...............................................................................
 
 # Loop through dates from oldest to newest and replace datasets when appropriate
-for (i in 1:length(release_dates_form)) {
-  if (release_dates_form[i] <= Sys.Date()) { #If we passed the day, assign dataset name
+## Note: special instance of release date checker as it also saves previous months' datasets
+for (i in 1:length(release_dates)) {
+  if (release_dates[i] <= Sys.Date()) { #If we passed the day, assign dataset name
     
-    month_remainder <- lubridate::month(release_dates_form[i]) %% 3 # Check which dataset is updated
-    month_format <- format(release_dates_form[i],'%b%Y')
+    month_remainder <- lubridate::month(release_dates[i]) %% 3 # Check which dataset is updated
+    month_format <- format(release_dates[i],"%b%Y")
+    release_date_form <- format(release_dates[i],"%y_%m_%d")
     
-    latest_paye_overall_name <- tolower(paste0("raw_paye_rtisa",month_format,".xlsx")) # this will be overridden to contain latest only
+    latest_paye_overall_name <- tolower(paste0(release_date_form,"_raw_paye_rtisa",".xlsx")) # this will be overridden to contain latest only
     
     # Assign for each of the detailed dataasets
+    ## Set name as appearing on ONS website and names we use, separately
     if (month_remainder == 0) {
-      latest_paye_locauth_name <- tolower(paste0("raw_paye_rtisa",month_format,".xlsx"))
+      
+      latest_paye_locauth_name <- tolower(paste0(release_date_form,"_raw_paye_rtisa",".xlsx"))
+      latest_paye_locauth_url <- tolower(paste0("rtisa",month_format,".xlsx"))
+      
     } else if (month_remainder==1) {
-      latest_paye_nuts1age_name <- tolower(paste0("raw_paye_rtisa",month_format,".xlsx"))
+      
+      latest_paye_nuts1age_name <- tolower(paste0(release_date_form,"_raw_paye_rtisa",".xlsx"))
+      latest_paye_nuts1age_url <- tolower(paste0("rtisa",month_format,".xlsx"))
+      
     } else if (month_remainder==2) {
-      latest_paye_nuts1ind_name <- tolower(paste0("raw_paye_rtisa",month_format,".xlsx"))
+      
+      latest_paye_nuts1ind_name <- tolower(paste0(release_date_form,"_raw_paye_rtisa",".xlsx"))
+      latest_paye_nuts1ind_url <- tolower(paste0("rtisa",month_format,".xlsx"))
+      
     }
   }
 }
@@ -40,9 +52,11 @@ for (i in 1:length(release_dates_form)) {
 # Download the three most recent datasets
 paye_online_path <- "https://www.ons.gov.uk/file?uri=/employmentandlabourmarket/peopleinwork/earningsandworkinghours/datasets/realtimeinformationstatisticsreferencetableseasonallyadjusted/current/"
 
-for (dta_name in c(latest_paye_locauth_name,latest_paye_nuts1age_name,latest_paye_nuts1ind_name)) {
+for (dta_name in c("latest_paye_locauth","latest_paye_nuts1age","latest_paye_nuts1ind")) {
   
-  dta_name_url <- gsub("raw_paye_","",dta_name) # name as it appears on ONS website
+  # Retrieve the path name and file name
+  dta_name_file <- eval(parse(text=paste0(dta_name,"_name")))
+  dta_name_url <- eval(parse(text=paste0(dta_name,"_url")))
   download_path <- paste0(paye_online_path,dta_name_url)
   
   # Check if link exists
@@ -50,25 +64,26 @@ for (dta_name in c(latest_paye_locauth_name,latest_paye_nuts1age_name,latest_pay
   
   # Download
   download.file(url = download_path,
-                destfile = paste0(INTERMEDIATE,dta_name),
+                destfile = paste0(OTHERDATA,dta_name_file),
                 mode = "wb")
   
 }
 
-# Clean up
-rm(month_remainder,month_format,dta_name,i,dta_name_url,download_path)
+# Clean up objects no longer needed
+rm(month_remainder,month_format,dta_name,i,dta_name_file,dta_name_url,download_path,
+   latest_paye_nuts1ind_url,latest_paye_nuts1age_url,latest_paye_locauth_url)
 
 #...............................................................................
 # Generate overall latest data ----
 #...............................................................................
 
 
-paye_emp_stats <- readxl::read_excel(path = paste0(INTERMEDIATE,latest_paye_overall_name), sheet = "7. Employees (NUTS1)", skip = 6) %>% 
+paye_emp_stats <- readxl::read_excel(path = paste0(OTHERDATA,latest_paye_overall_name), sheet = "7. Employees (NUTS1)", skip = 6) %>% 
   mutate(date_day=my(Date),
          measure_name = "emps") %>% 
   select(date_day, London, UK,measure_name) 
 
-paye_pay_stats <- readxl::read_excel(path = paste0(INTERMEDIATE,latest_paye_overall_name), sheet = "8. Median pay (NUTS1)", skip = 6) %>% 
+paye_pay_stats <- readxl::read_excel(path = paste0(OTHERDATA,latest_paye_overall_name), sheet = "8. Median pay (NUTS1)", skip = 6) %>% 
   mutate(date_day=my(Date),
          measure_name = "median_pay") %>% 
   select(date_day, London, UK,measure_name) 
@@ -106,12 +121,12 @@ remove(paye_emp_stats) #do not remove paye_pay_stats as needed for CPIH below
 paye_overall_last_month <- format(max(paye_stats$date_day),"%B %Y")
 
 #### PAYE NUTS2 ----
-paye_nuts2_emp_stats <- readxl::read_excel(path = paste0(INTERMEDIATE,latest_paye_overall_name), sheet = "11. Employees (NUTS2)", skip = 6) %>% 
+paye_nuts2_emp_stats <- readxl::read_excel(path = paste0(OTHERDATA,latest_paye_overall_name), sheet = "11. Employees (NUTS2)", skip = 6) %>% 
   mutate( date_day = dmy(paste0("01",Date)),
           measure_name="emps")   %>% 
   select(date_day,measure_name, "Inner London - West",	"Inner London - East",	"Outer London - East and North East",	"Outer London - South",	"Outer London - West and North West")
 
-paye_nuts2_pay_stats <- readxl::read_excel(path = paste0(INTERMEDIATE,latest_paye_overall_name), sheet = "12. Median pay (NUTS2)", skip = 6) %>% 
+paye_nuts2_pay_stats <- readxl::read_excel(path = paste0(OTHERDATA,latest_paye_overall_name), sheet = "12. Median pay (NUTS2)", skip = 6) %>% 
   mutate( date_day = dmy(paste0("01",Date)),
           measure_name="median_pay")  %>%
   select(date_day,measure_name, "Inner London - West",	"Inner London - East",	"Outer London - East and North East",	"Outer London - South",	"Outer London - West and North West")
@@ -157,21 +172,21 @@ remove(paye_nuts2_emp_stats,paye_nuts2_pay_stats)
 #### (a) Each quarter, process data on PAYE employee age on regional level
 
 
-paye_age_emp_uk <- readxl::read_excel(path = paste0(INTERMEDIATE,latest_paye_nuts1age_name), sheet = "28. Employees (Age)", skip = 5) %>%
+paye_age_emp_uk <- readxl::read_excel(path = paste0(OTHERDATA,latest_paye_nuts1age_name), sheet = "28. Employees (Age)", skip = 5) %>%
   mutate(date_day = dmy(paste0("01",Date)),
          measure_name = "emps",
          geography_name = "UK",
          Total = rowSums(across(c("0-17","18-24","25-34","35-49","50-64","65+")))) %>% 
   select(date_day,geography_name, measure_name, "0-17","18-24","25-34","35-49","50-64","65+",Total) 
 
-paye_age_pay_uk <- readxl::read_excel(path = paste0(INTERMEDIATE,latest_paye_nuts1age_name), sheet = "29. Median pay (Age)", skip = 5) %>%
+paye_age_pay_uk <- readxl::read_excel(path = paste0(OTHERDATA,latest_paye_nuts1age_name), sheet = "29. Median pay (Age)", skip = 5) %>%
   mutate(date_day = dmy(paste0("01",Date)),
          measure_name = "median_pay",
          geography_name = "UK") %>% 
   left_join(paye_pay_aux,by=c("date_day","geography_name","measure_name")) %>% #merge with total average median pay
   select(date_day,geography_name, measure_name, "0-17","18-24","25-34","35-49","50-64","65+",Total) 
 
-paye_nuts1age_emp <- readxl::read_excel(path = paste0(INTERMEDIATE,latest_paye_nuts1age_name), sheet = "32. Employees (NUTS1Age)", skip = 6) %>%
+paye_nuts1age_emp <- readxl::read_excel(path = paste0(OTHERDATA,latest_paye_nuts1age_name), sheet = "32. Employees (NUTS1Age)", skip = 6) %>%
   rename_with(~str_replace(.x,pattern="London: ",replacement="")) %>% 
   mutate(date_day = dmy(paste0("01",Date)),
          measure_name = "emps",
@@ -179,7 +194,7 @@ paye_nuts1age_emp <- readxl::read_excel(path = paste0(INTERMEDIATE,latest_paye_n
          Total = rowSums(across(c("0-17","18-24","25-34","35-49","50-64","65+")))) %>% 
   select(date_day,geography_name, measure_name, "0-17","18-24","25-34","35-49","50-64","65+",Total)
 
-paye_nuts1age_pay <- readxl::read_excel(path = paste0(INTERMEDIATE,latest_paye_nuts1age_name), sheet = "33. Median pay (NUTS1Age)", skip = 6) %>%
+paye_nuts1age_pay <- readxl::read_excel(path = paste0(OTHERDATA,latest_paye_nuts1age_name), sheet = "33. Median pay (NUTS1Age)", skip = 6) %>%
   rename_with(~str_replace(.x,pattern="London: ",replacement="")) %>% 
   mutate(date_day = dmy(paste0("01",Date)),
          measure_name = "median_pay",
@@ -211,14 +226,14 @@ paye_age_last_month <- format(max(paye_nuts1age_stats$date_day),"%B %Y")
 #### PAYE by industry ----
 #### (b) Each quarter, process data on PAYE employees by industry at region level. 
 
-paye_ind_emp_uk <- readxl::read_excel(path = paste0(INTERMEDIATE,latest_paye_nuts1ind_name), sheet = "23. Employees (Industry)", skip = 6) %>% 
+paye_ind_emp_uk <- readxl::read_excel(path = paste0(OTHERDATA,latest_paye_nuts1ind_name), sheet = "23. Employees (Industry)", skip = 6) %>% 
   mutate(date_day = dmy(paste0("01",Date)),
          geography_name="UK",
          measure_name = "emps",
          Total = rowSums(across(c("Agriculture, forestry and fishing":"Households and Extraterritorial")))) %>% 
   select(-c("UK"))
 
-paye_ind_pay_uk <- readxl::read_excel(path = paste0(INTERMEDIATE,latest_paye_nuts1ind_name), sheet = "24. Median pay (Industry)", skip = 6) %>% 
+paye_ind_pay_uk <- readxl::read_excel(path = paste0(OTHERDATA,latest_paye_nuts1ind_name), sheet = "24. Median pay (Industry)", skip = 6) %>% 
   mutate(date_day = dmy(paste0("01",Date)),
          geography_name="UK",
          measure_name = "median_pay") %>% 
@@ -226,7 +241,7 @@ paye_ind_pay_uk <- readxl::read_excel(path = paste0(INTERMEDIATE,latest_paye_nut
   select(-c("UK"))  
 
 
-paye_nuts1ind_emp <- readxl::read_excel(path = paste0(INTERMEDIATE,latest_paye_nuts1ind_name), sheet = "36. Employees (NUTS1Sector)", skip = 6) %>% 
+paye_nuts1ind_emp <- readxl::read_excel(path = paste0(OTHERDATA,latest_paye_nuts1ind_name), sheet = "36. Employees (NUTS1Sector)", skip = 6) %>% 
   mutate(date_day = dmy(paste0("01",Date)),
          geography_name="London",
          measure_name = "emps",
@@ -234,7 +249,7 @@ paye_nuts1ind_emp <- readxl::read_excel(path = paste0(INTERMEDIATE,latest_paye_n
   select(c(Date,date_day,geography_name,contains("London"),measure_name,Total))  %>%
   rename_with(~str_replace(.x,pattern="London: ",replacement=""))
 
-paye_nuts1ind_pay <- readxl::read_excel(path = paste0(INTERMEDIATE,latest_paye_nuts1ind_name), sheet = "37. Median pay (NUTS1Sector)", skip = 6) %>% 
+paye_nuts1ind_pay <- readxl::read_excel(path = paste0(OTHERDATA,latest_paye_nuts1ind_name), sheet = "37. Median pay (NUTS1Sector)", skip = 6) %>% 
   mutate(date_day = dmy(paste0("01",Date)),
          geography_name="London",
          measure_name = "median_pay") %>% 
@@ -282,13 +297,13 @@ paye_ind_last_month <- format(max(paye_nuts1ind_stats$date_day),"%B %Y")
 
 la_columns <- c("City of London", "Barking and Dagenham", "Barnet", "Bexley", "Brent", "Bromley", "Camden", "Croydon", "Ealing", "Enfield", "Greenwich", "Hackney", "Hammersmith and Fulham", "Haringey", "Harrow", "Havering", "Hillingdon", "Hounslow", "Islington", "Kensington and Chelsea", "Kingston upon Thames", "Lambeth", "Lewisham", "Merton", "Newham", "Redbridge", "Richmond upon Thames", "Southwark", "Sutton", "Tower Hamlets", "Waltham Forest", "Wandsworth", "Westminster")
 
-paye_la_emp_stats <- readxl::read_excel(path = paste0(INTERMEDIATE,latest_paye_locauth_name), sheet = "19. Employees (LA)", skip = 7) %>% 
+paye_la_emp_stats <- readxl::read_excel(path = paste0(OTHERDATA,latest_paye_locauth_name), sheet = "19. Employees (LA)", skip = 7) %>% 
   mutate(date_day = dmy(paste0("01",Date))) %>% 
   select( Date, date_day, all_of(la_columns)) %>% 
   pivot_longer(cols="City of London":"Westminster",names_to = "geography_name", values_to = "measure_value") %>% 
   mutate(measure_name="emps")
 
-paye_la_pay_stats <- readxl::read_excel(path = paste0(INTERMEDIATE,latest_paye_locauth_name), sheet = "20. Median pay (LA)", skip = 7) %>% 
+paye_la_pay_stats <- readxl::read_excel(path = paste0(OTHERDATA,latest_paye_locauth_name), sheet = "20. Median pay (LA)", skip = 7) %>% 
   mutate(date_day = dmy(paste0("01",Date))) %>% 
   select( Date, date_day, all_of(la_columns)) %>% 
   pivot_longer(cols="City of London":"Westminster",names_to = "geography_name", values_to = "measure_value") %>% 

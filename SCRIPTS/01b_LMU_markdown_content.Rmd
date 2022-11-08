@@ -183,8 +183,8 @@ output:
   
   wfj_d_dec19 <- value_form(wfj_tot_value_stats %>% 
                               filter(item_name == "total workforce jobs" & date_day == max(date_day) 
-                                     & geography_name == "London" ) %>%
-                              pull(obs_value) / 
+                                     & geography_name == "London") %>%
+                              pull(obs_value) - 
                               (wfj_tot_value_stats %>% filter(item_name == "total workforce jobs" 
                                                               & date_day == (ymd("2019-12-01")) 
                                                               & geography_name == "London") %>%
@@ -1082,26 +1082,27 @@ For `r lfs_previous_month` to `r lfs_last_month`:
 
 ```{r regions employment, echo=FALSE,fig.cap = empcap, out.width='100%',fig.alt=paste0("Bar chart showing the employment rate for each of the regions and countries in the UK separately, with London highlighted, for ",lfs_last_month)}
   
-  
-  lfs_regions_charting <- lfs_regions %>% 
-    filter(!(geography_name %in% c("England","United Kingdom")) & date_day==max(date_day) & value_type_name=="Level" & sex_name=="Total" & measures_name=="Unemployment rates use employment plus unemployment as a denominator; all other rates use population levels as a denominator.")
-  
-  lfs_regions_emp <- GLAbarchart(data_set = lfs_regions_charting,
-              x_var = geography_name, ### Assumed that this will be a line chart with dates on the x-axis
-              y_var = total_in_employment_aged_16_to_64, 
-              y_limits = c(0,0.80),
-              title = "Employment rate by region (% of working age population)",
-              caption = "\nSource: ONS Labour Force Survey.\n\nNote: The margin of error ranges from +/- 1.6% to +/- 2.6% across regions.",
-              chart_name = "lfs_regions_emp") 
-  
-  LMU_plotly_settings(ch_name = lfs_regions_emp,
-                      title_text = 'paste0("Employment rate by region (% of working age population)")',
-                      subtitle_text = 'paste0("Latest data for three-month period ending ", lfs_last_month)',
-                      hover_mode = "closest") %>% 
-    hide_legend()
-  
 
-  empcap <- paste0("Source: ONS Labour Force Survey.","<br>","<br>", "Note: The margin of error ranges from +/- 1.6% to +/- 2.6% across regions.")
+lfs_regions_charting <- lfs_regions %>% 
+  filter(!(geography_name %in% c("England","United Kingdom")) & date_day==max(date_day) & value_type_name=="Level" 
+         & sex_name=="Total" & measures_name=="Unemployment rates use employment plus unemployment as a denominator; all other rates use population levels as a denominator.")
+
+lfs_regions_emp <- GLAbarchart(data_set = lfs_regions_charting,
+                               x_var = geography_name, ### Assumed that this will be a line chart with dates on the x-axis
+                               y_var = total_in_employment_aged_16_to_64, 
+                               y_limits = c(0,0.80),
+                               title = "Employment rate by region (% of working age population)",
+                               caption = "\nSource: ONS Labour Force Survey.\n\nNote: The margin of error ranges from +/- 1.6% to +/- 2.6% across regions.",
+                               chart_name = "lfs_regions_emp") 
+
+LMU_plotly_settings(ch_name = lfs_regions_emp,
+                    title_text = 'paste0("Employment rate by region (% of working age population)")',
+                    subtitle_text = 'paste0("Latest data for three-month period ending ", lfs_last_month)',
+                    hover_mode = "closest") %>% 
+  hide_legend()
+
+
+empcap <- paste0("Source: ONS Labour Force Survey.","<br>","<br>", "Note: The margin of error ranges from +/- 1.6% to +/- 2.6% across regions.")
 
 ```
 <hr  width="100%" style="background-color: rgb(134,139,142);height: 1.0px;margin: 0;"/>

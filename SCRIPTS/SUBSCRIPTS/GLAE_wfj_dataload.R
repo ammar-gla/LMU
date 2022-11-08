@@ -56,4 +56,7 @@ wfj_stats <- nomis_get_data(id = "NM_130_1", time = c("2010-01", "latest"), geog
 wfj_tot_value_stats <- wfj_stats %>% 
   filter(measures_name == "Value" & industry_name == "Total")
 
-fwrite(wfj_stats, file = paste0(INTERMEDIATE,Sys.Date(),"_wfj.csv"), na = "NaN")
+# Save files externally, using the most recent date
+wfj_last_release_date <- format(lm_release_date_checker(wfj = TRUE),"%y_%m_%d")
+saveRDS(wfj_stats, file = paste0(RDATA,wfj_last_release_date,"_wfj.rds"))
+fwrite(wfj_stats, file = paste0(OTHERDATA,wfj_last_release_date,"_wfj.csv"), na = "NaN")

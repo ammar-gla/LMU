@@ -5,12 +5,17 @@
   # Put in your Nomis API key (NB: THE BELOW IS AMMAR'S KEY!!)
   Sys.setenv(NOMIS_API_KEY = "0x01a88c6659d20042f087de2e585cdf3a07708983")
 
+  # ACTION: set whether to re-download all datasets, even if already exists
+  redownload_all <- FALSE
+
   # HERE package needed for dynamic pathfinding
   library("here") 
   
   # Set paths
   INPUT <- paste0(here::here(),"/INPUT/")
   INTERMEDIATE <- paste0(here::here(),"/INTERMEDIATE/")
+  RDATA <- paste0(INTERMEDIATE,"/RDATA/")
+  OTHERDATA<- paste0(INTERMEDIATE,"/OTHERDATA/")
   IMAGES <- paste0(here::here(),"/OUTPUT/IMAGES/MAIN/")
   HTML_OUT <- paste0(here::here(),"/OUTPUT/HTML/")
   FORMATTING <- paste0(here::here(),"/FORMATTING/")
@@ -55,6 +60,8 @@
   # Set paths
   INPUT <- paste0(here::here(),"/INPUT/")
   INTERMEDIATE <- paste0(here::here(),"/INTERMEDIATE/")
+  RDATA <- paste0(INTERMEDIATE,"/RDATA/")
+  OTHERDATA<- paste0(INTERMEDIATE,"/OTHERDATA/")
   IMAGES <- paste0(here::here(),"/OUTPUT/IMAGES/MAIN/")
   HTML_OUT <- paste0(here::here(),"/OUTPUT/HTML/")
   FORMATTING <- paste0(here::here(),"/FORMATTING/")
