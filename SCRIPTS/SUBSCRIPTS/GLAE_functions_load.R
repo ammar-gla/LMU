@@ -147,18 +147,18 @@ urlFileExist <- function(url){
 #.............................................................................
 
 LFS_line_chart <- function( data_set = lfs_stats, ### This function has been written to work specifically with the NM_59_1 dataset
-                          lfs_or_claims = "lfs",
-                          x_var = date_day, ### Assumed that this will be a line chart with dates on the x-axis
-                          min_x_var = as.Date("2015-01-01"), 
-                          y_var = NULL, ### See document "[today's date]colnames.csv" for variables available for charting
-                          geography = c("London", "United Kingdom"),
-                          suffix = "%",
-                          y_limits = c(0,100),
-                          nudge_y = NULL,
-                          title = NULL,
-                          subtitle = NULL,
-                          caption = "",
-                          chart_name = NULL) {
+                            lfs_or_claims = "lfs",
+                            x_var = date_day, ### Assumed that this will be a line chart with dates on the x-axis
+                            min_x_var = as.Date("2015-01-01"), 
+                            y_var = NULL, ### See document "[today's date]colnames.csv" for variables available for charting
+                            geography = c("London", "United Kingdom"),
+                            suffix = "%",
+                            y_limits = c(0,100),
+                            nudge_y = NULL,
+                            title = NULL,
+                            subtitle = NULL,
+                            caption = "",
+                            chart_name = NULL) {
   
   pal <- gla_pal(gla_theme = "default", palette_type = "highlight", n = c(1, 1))
   theme_set(theme_gla(gla_theme = "default"))
@@ -486,103 +486,333 @@ ggplot_map_output <- function(dataset,
 # Data downloading ----
 #...............................................................................
 
-HeadlineDownload <- function( data_series = "NM_59_1", 
-                              time_period = c("1996-01","latest"), 
-                              save_intermediate = TRUE,
-                              econ_activity=c(0,3,7,9), #main ones used
-                              sex=c(5,6,7), #all sexes
-                              geography = NULL) {
+# Determine what most recent release date is for labour market (lm) dataand download relevant dataset
+lm_release_date_checker <- function(release_dates_lm_vec = release_dates_lm,
+                                    release_dates_cpih_vec = release_dates_cpih,
+                                    data_type="lm") # Account for quarterly WFJ releases or CPIH, LM is default
+{
   
-  ### Download both absolute and percentage figures from NOMIS
+  # Data type has to be among specific options
+  data_types_options <- c("lm","wfj","cpih")
+  checkmate::assert_choice(data_type, choices = data_types_options)
   
-  raw_nomis <- nomis_get_data( id = data_series, 
-                               geography = geography,
-                               time = time_period,
-                               economic_activity=econ_activity,
-                               sex=sex)
+  # WFJ and LM use same dates, while CPIH use different dates
+  if (data_type %in% c("lm","wfj")) release_dates_vec <- release_dates_lm_vec
+  if (data_type=="cpih") release_dates_vec <- release_dates_cpih_vec
   
-  ### Store downloads as dataframes
-  
-  lfs_stats <- raw_nomis %>% 
-    mutate(DATE_DAY = as.Date(paste0(DATE, "-01"))) %>% 
-    filter(MEASURES %in% c(20207,20100) & !is.na(OBS_VALUE)) %>%
-    select( "DATE_DAY", "DATE_NAME", "SEX_NAME", "GEOGRAPHY_NAME", "ECONOMIC_ACTIVITY_NAME", "VALUE_TYPE_NAME", "OBS_VALUE","MEASURES","MEASURES_NAME") %>% 
-    pivot_wider( names_from = ECONOMIC_ACTIVITY_NAME, values_from = OBS_VALUE) %>%  
-    clean_names()
-  
-  ### Save intermediate dataframes if specified
-  
-  if( save_intermediate == TRUE) {
-    lfs_stats %>% 
-      fwrite(file = paste0(INTERMEDIATE,Sys.Date(),"_LFS_update.csv"))
+  # Save the relevant most recent date
+  for (i in 1:length(release_dates_vec)) {
     
+    if (data_type %in% c("lm","cpih")) { #simply take latest date
+      
+      if (release_dates_vec[i] <= Sys.Date()) last_release_date <-  release_dates_vec[i]
+    }    else if (data_type=="wfj") { #only keep if WFJ released on date
+      
+      if (release_dates_vec[i] <= Sys.Date() & month(release_dates_vec[i]) %in% release_months_wfj) last_release_date <-  release_dates_vec[i]
+    }
   }
   
-  data.table::fwrite( as.data.frame(colnames(lfs_stats)), file = paste0(INTERMEDIATE,"/",Sys.Date(),"_colnames.csv"))
-  
-  return( lfs_stats)
-  
+  return(last_release_date)
 }
 
 #...............................................................................
+# LFS download
+#...............................................................................
+# Download LM data from Nomis
+HeadlineDownload <- function(data_series = "NM_59_1", 
+                             time_period = c("1996-01","latest"), 
+                             save_intermediate = TRUE,
+                             data_name = NULL, # used for differentiating datasets
+                             release_date = NULL, #should be formatted as 'yy_mm_dd' 
+                             econ_activity=c(0,3,7,9), #main ones used
+                             sex=c(5,6,7), #all sexes
+                             geography = NULL,
+                             force_download=FALSE) { # In case new datasets are needed
+  
+  # If release date is left as null, run the function to check against most recent release date
+  if (is.null(release_date)) {
+    release_date <- lm_release_date_checker()
+  }
+  
+  release_date_form <- format(release_date,"%y_%m_%d")
+  
+  # Check if most recent data is already downloaded. If not, download it now
+  data_file_name_path_csv <- paste0(OTHERDATA,release_date_form,"_LFS_",data_name,".csv")
+  data_file_name_path_rds <- paste0(RDATA,release_date_form,"_LFS_",data_name,".rds")
+  
+  if (file.exists(data_file_name_path_rds) & force_download==FALSE) { # Load existing file
+    
+    lfs_stats <- readRDS(file=data_file_name_path_rds)
+  }
+  
+  else { # Download data
+    
+    ### Download both absolute and percentage figures from NOMIS
+    raw_nomis <- nomis_get_data( id = data_series, 
+                                 geography = geography,
+                                 time = time_period,
+                                 economic_activity=econ_activity,
+                                 sex=sex)
+    
+    ### Store downloads as dataframes
+    lfs_stats <- raw_nomis %>% 
+      mutate(DATE_DAY = as.Date(paste0(DATE, "-01"))) %>% 
+      filter(MEASURES %in% c(20207,20100) & !is.na(OBS_VALUE)) %>%
+      select( "DATE_DAY", "DATE_NAME", "SEX_NAME", "GEOGRAPHY_NAME", "ECONOMIC_ACTIVITY_NAME", "VALUE_TYPE_NAME", "OBS_VALUE","MEASURES","MEASURES_NAME") %>% 
+      pivot_wider( names_from = ECONOMIC_ACTIVITY_NAME, values_from = OBS_VALUE) %>%  
+      clean_names()
+    
+    ### Save intermediate dataframes if specified
+    if(save_intermediate == TRUE) {
+      
+      fwrite(lfs_stats, file = data_file_name_path_csv)
+      saveRDS(lfs_stats,file = data_file_name_path_rds)
+    }
+    
+  }
+  
+  return(lfs_stats)
+}
 
-# Define function used
-ClaimantCountDownload <- function( sa_nsa = NULL,
-                                   time_period = c("1996-01","latest"),
-                                   save_intermediate = TRUE,
-                                   geography_v = c(london_geo_code,eng_geo_code,uk_geo_code,regions_geo_code,boroughs_group),
-                                   measures_v = 20100,
-                                   ...) {
+#...............................................................................
+# Claimant count data download
+#...............................................................................
+
+ClaimantCountDownload <- function(sa_nsa = NULL,
+                                  time_period = c("1996-01","latest"),
+                                  save_intermediate = TRUE,
+                                  geography_v = c(london_geo_code,eng_geo_code,uk_geo_code,regions_geo_code,boroughs_group),
+                                  measures_v = 20100,
+                                  data_name = NULL, # used for differentiating datasets
+                                  release_date = NULL, #should be formatted as 'yy_mm_dd' 
+                                  force_download=FALSE,  # In case new datasets are needed
+                                  ...) {
   
   checkmate::assert_choice(sa_nsa, choices = c("sa","nsa"))
   
-  ## Select data series depending on SA NSA
-  if (sa_nsa=="sa") {
-    data_series <- "NM_11_1"
-    
-    ### Download the claimant count data from NOMIS
-    raw_nomis <- nomis_get_data(
-      id = data_series, 
-      geography = geography_v,
-      measures = measures_v,
-      time = time_period,
-      ...) 
-    
-    ### Clean data
-    cc_stats <- raw_nomis %>% 
-      mutate(DATE_DAY = as.Date(paste0(DATE, "-01"))) %>% 
-      filter(OBS_STATUS!="Q") %>% # removes data points which do not have value, e.g. rate for X age group 
-      clean_names() %>% 
-      select( date_day, date_name, geography_name, sex_name, obs_value, measures_name) %>% #notice the different var names to NSA
-      rename(measure_value=obs_value)
-  }
-  else {
-    data_series <- "NM_162_1"
-    
-    ### Download the claimant count data from NOMIS
-    raw_nomis <- nomis_get_data(
-      id = data_series, 
-      geography = geography_v,
-      measures = measures_v,
-      time = time_period,
-      ...) 
-    
-    ### Clean data
-    cc_stats <- raw_nomis %>% 
-      mutate( DATE_DAY = as.Date(paste0(DATE, "-01"))) %>% 
-      filter(OBS_STATUS!="Q") %>% # removes data points which do not have value, e.g. rate for X age group 
-      clean_names() %>% 
-      select( date_day, date_name, geography_name, gender_name, age_name, obs_value, measure_name) %>% 
-      rename( sex_name = gender_name,measure_value=obs_value)
-    
+  # If release date is left as null, run the function to check against most recent release date
+  if (is.null(release_date)) {
+    release_date <- lm_release_date_checker()
   }
   
-  ### Save intermediate dataframes if specified
-  if( save_intermediate == TRUE) {
-    fwrite(cc_stats, file = paste0(INTERMEDIATE,Sys.Date(),"_",data_series,"_claimant.csv"))
+  release_date_form <- format(release_date,"%y_%m_%d")
+  
+  # Check if most recent data is already downloaded. If not, download it now
+  data_file_name_path_csv <- paste0(OTHERDATA,release_date_form,"_CC_",sa_nsa,"_",data_name,".csv")
+  data_file_name_path_rds <- paste0(RDATA,release_date_form,"_CC_",sa_nsa,"_",data_name,".rds")
+  
+  if (file.exists(data_file_name_path_rds) & force_download==FALSE) { # Load existing file
+    
+    cc_stats <-readRDS(file=data_file_name_path_rds)
+  }
+  
+  else { # Download data
+    
+    ## Select data series depending on SA NSA
+    if (sa_nsa=="sa") {
+      data_series <- "NM_11_1"
+      
+      ### Download the claimant count data from NOMIS
+      raw_nomis <- nomis_get_data(
+        id = data_series, 
+        geography = geography_v,
+        measures = measures_v,
+        time = time_period,
+        ...) 
+      
+      ### Clean data
+      cc_stats <- raw_nomis %>% 
+        mutate(DATE_DAY = as.Date(paste0(DATE, "-01"))) %>% 
+        filter(OBS_STATUS!="Q") %>% # removes data points which do not have value, e.g. rate for X age group 
+        clean_names() %>% 
+        select( date_day, date_name, geography_name, sex_name, obs_value, measures_name) %>% #notice the different var names to NSA
+        rename(measure_value=obs_value)
+    }
+    else {
+      data_series <- "NM_162_1"
+      
+      ### Download the claimant count data from NOMIS
+      raw_nomis <- nomis_get_data(
+        id = data_series, 
+        geography = geography_v,
+        measures = measures_v,
+        time = time_period,
+        ...) 
+      
+      ### Clean data
+      cc_stats <- raw_nomis %>% 
+        mutate( DATE_DAY = as.Date(paste0(DATE, "-01"))) %>% 
+        filter(OBS_STATUS!="Q") %>% # removes data points which do not have value, e.g. rate for X age group 
+        clean_names() %>% 
+        select( date_day, date_name, geography_name, gender_name, age_name, obs_value, measure_name) %>% 
+        rename( sex_name = gender_name,measure_value=obs_value)
+      
+    }
+    
+    ### Save intermediate dataframes if specified
+    if( save_intermediate == TRUE) {
+      fwrite(cc_stats, file = data_file_name_path_csv)
+      saveRDS(cc_stats,file = data_file_name_path_rds)
+    }
   }
   
   return(cc_stats) 
-  
 }
 
+#...............................................................................
+# PAYE data download
+#...............................................................................
+## This function checks whether new data has been released and downloads it.
+## If it already exists as datafile in project, load it
+## Checks for latest overall, and also for quarterly updates on specific topics
+
+paye_rti_download <- function(release_dates_vec=release_dates_lm,
+                              force_download=FALSE) {
+  
+  # Loop through dates from oldest to newest and replace datasets when appropriate
+  ## Note: special instance of release date checker as it also saves previous months' datasets
+  for (i in 1:length(release_dates_vec)) {
+    if (release_dates_vec[i] <= Sys.Date()) { #If we passed the day, assign dataset name
+      
+      month_remainder <- lubridate::month(release_dates_vec[i]) %% 3 # Check which dataset is updated
+      month_format <- format(release_dates_vec[i],"%b%Y")
+      release_date_form <- format(release_dates_vec[i],"%y_%m_%d")
+      
+      latest_paye_overall_name <- tolower(paste0(release_date_form,"_raw_paye_rtisa",".xlsx")) # this will be overridden to contain latest only
+      
+      # Assign for each of the detailed dataasets
+      ## Set name as appearing on ONS website and names we use, separately
+      if (month_remainder == 0) {
+        
+        latest_paye_locauth_name <- tolower(paste0(release_date_form,"_raw_paye_rtisa",".xlsx"))
+        latest_paye_locauth_url <- tolower(paste0("rtisa",month_format,".xlsx"))
+        
+      } else if (month_remainder==1) {
+        
+        latest_paye_nuts1age_name <- tolower(paste0(release_date_form,"_raw_paye_rtisa",".xlsx"))
+        latest_paye_nuts1age_url <- tolower(paste0("rtisa",month_format,".xlsx"))
+        
+      } else if (month_remainder==2) {
+        
+        latest_paye_nuts1ind_name <- tolower(paste0(release_date_form,"_raw_paye_rtisa",".xlsx"))
+        latest_paye_nuts1ind_url <- tolower(paste0("rtisa",month_format,".xlsx"))
+        
+      }
+    }
+  }
+  
+  # Create list with the names of the PAYE datasets as saved in project
+  paye_data_paths_list <- list(overall=latest_paye_overall_name,
+                               locauth=latest_paye_locauth_name,
+                               nuts1age=latest_paye_nuts1age_name,
+                               nuts1ind=latest_paye_nuts1ind_name)
+  
+  # Download the three most recent datasets
+  ## URL on ONS website
+  paye_online_path <- "https://www.ons.gov.uk/file?uri=/employmentandlabourmarket/peopleinwork/earningsandworkinghours/datasets/realtimeinformationstatisticsreferencetableseasonallyadjusted/current/"
+  
+  ## Loop through the dataset names, check each and save as appropriate
+  for (dta_name in c("latest_paye_locauth","latest_paye_nuts1age","latest_paye_nuts1ind")) {
+    
+    # Retrieve the path name and file name
+    dta_name_file <- eval(parse(text=paste0(dta_name,"_name")))
+    dta_name_url <- eval(parse(text=paste0(dta_name,"_url")))
+    download_path <- paste0(paye_online_path,dta_name_url)
+    
+    # If data does not already exists, or we want to force it to re-download
+    
+    if (file.exists(paste0(OTHERDATA,dta_name_file)) & force_download==FALSE) {
+      # do nothing
+    }
+    else {
+      # Check if link exists
+      stopifnot("URL path for PAYE data does not exist"=urlFileExist(download_path)==TRUE)
+      
+      # Download
+      download.file(url = download_path,
+                    destfile = paste0(OTHERDATA,dta_name_file),
+                    mode = "wb")
+    }
+  }
+  
+  # Return a list with the relevant datasets
+  return(paye_data_paths_list)
+}
+
+
+#...............................................................................
+# CPIH data download
+#...............................................................................
+
+cpih_download <- function(force_download=FALSE) {
+  # Save files externally, using the most recent date
+  cpih_last_release_date <- format(lm_release_date_checker(data_type="cpih"),"%y_%m_%d")
+  
+  cpih_index_file_name <- paste0(cpih_last_release_date,"_raw_cpih_index")
+  cpih_rate_file_name <- paste0(cpih_last_release_date,"_raw_cpih_rate")
+  
+  # If the file exists, load it. Otherwise, download it and save - assume either both or neither exists
+  if (file.exists(paste0(RDATA,cpih_index_file_name,".rds")) & redownload_all==FALSE) {
+    
+    cpih_index_raw <- readRDS(paste0(RDATA,cpih_index_file_name,".rds"))
+    cpih_rate_raw <- readRDS(paste0(RDATA,cpih_rate_file_name,".rds"))
+    
+  } else {
+    
+    # Download both
+    download.file(url = "https://www.ons.gov.uk/generator?format=csv&uri=/economy/inflationandpriceindices/timeseries/l522/mm23",
+                  destfile = paste0(OTHERDATA,cpih_index_file_name,".csv"),
+                  mode = "wb")
+    download.file(url = "https://www.ons.gov.uk/generator?format=csv&uri=/economy/inflationandpriceindices/timeseries/l55o/mm23",
+                  destfile = paste0(OTHERDATA,cpih_rate_file_name,".csv"),
+                  mode = "wb")
+    
+    # Load them 
+    cpih_index_raw <- read.csv(paste0(OTHERDATA,cpih_index_file_name,".csv"),
+                               header=FALSE,
+                               stringsAsFactors=FALSE)
+    cpih_rate_raw <- read.csv(paste0(OTHERDATA,cpih_rate_file_name,".csv"),
+                              header=FALSE,
+                              stringsAsFactors=FALSE)
+    
+    # Save as Rdata
+    saveRDS(cpih_index_raw, file = paste0(RDATA,cpih_index_file_name,".rds"))
+    saveRDS(cpih_rate_raw, file = paste0(RDATA,cpih_rate_file_name,".rds"))
+  }
+  
+  # Return list with datasets
+  cpih_data_list <- list(cpih_index=cpih_index_raw,cpih_rate=cpih_rate_raw)
+  
+  return(cpih_data_list)
+}
+
+#...............................................................................
+# WFJ data download
+#...............................................................................
+
+wfj_download <- function(force_download=FALSE) {
+  
+  # Save files externally, using the most recent date
+  wfj_last_release_date <- format(lm_release_date_checker(data_type="wfj"),"%y_%m_%d")
+  
+  wfj_file_name <- paste0(wfj_last_release_date,"_raw_wfj")
+  
+  # If the file exists, load it. Otherwise, download it and save
+  if (file.exists(paste0(RDATA,wfj_file_name,".rds")) & redownload_all==FALSE) {
+    
+    wfj_stats_raw <- readRDS(paste0(RDATA,wfj_file_name,".rds"))
+    
+  } else {
+    
+    wfj_stats_raw <- nomis_get_data(id = "NM_130_1", time = c("2010-01", "latest"), 
+                                    geography = c(london_geo_code,uk_geo_code),
+                                    industry=c(37748736,150994945:150994964))
+    
+    saveRDS(wfj_stats_raw, file = paste0(RDATA,wfj_file_name,".rds"))
+    fwrite(wfj_stats_raw, file = paste0(OTHERDATA,wfj_file_name,".csv"), na = "NaN")
+    
+  }
+  
+  # Return dataset to environment
+  return(wfj_stats_raw)
+}

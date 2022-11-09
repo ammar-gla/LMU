@@ -2,18 +2,22 @@
 _old/
 
 # Ignore the files in output folders, but keep folders
-/IMAGES/MAIN/**
-/IMAGES/AD_HOC/**
-/INTERMEDIATE/**
+/OUTPUT/IMAGES/MAIN/*
+/OUTPUT/IMAGES/AD_HOC/*
+/OUTPUT/HTML/*
+/INTERMEDIATE/OTHERDATA/*
+/INTERMEDIATE/RDATA/*
 
-!/IMAGES/MAIN/.gitkeep
-!/IMAGES/AD_HOC/.gitkeep
-!/INTERMEDIATE/.gitkeep
+!/OUTPUT/IMAGES/MAIN/.gitkeep
+!/OUTPUT/IMAGES/AD_HOC/.gitkeep
+!/OUTPUT/HTML/.gitkeep
+!/INTERMEDIATE/OTHERDATA/.gitkeep
+!/INTERMEDIATE/RDATA/.gitkeep
 
-# Ignore HTML output files
-/SCRIPTS/*.html
-
+# Ignore R project user info and any potential history files
 .Rproj.user
+.Rhistory
+.Rapp.history
 
 # Ignore thumbs file
 Thumbs.db

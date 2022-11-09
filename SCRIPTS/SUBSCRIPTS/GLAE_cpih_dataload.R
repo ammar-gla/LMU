@@ -14,18 +14,20 @@ if(!exists("paye_pay_stats"))
 ### Download inflation data ----
 #.............................................................................
 
-download.file( url = "https://www.ons.gov.uk/generator?format=csv&uri=/economy/inflationandpriceindices/timeseries/l522/mm23",
-               destfile = paste0(INTERMEDIATE,Sys.Date(),"_raw_cpih.csv"),
-               mode = "wb")
-download.file( url = "https://www.ons.gov.uk/generator?format=csv&uri=/economy/inflationandpriceindices/timeseries/l55o/mm23",
-               destfile = paste0(INTERMEDIATE,Sys.Date(),"_raw_cpih_rate.csv"),
-               mode = "wb")
+# Download datasets, or load them, within a list
+cpih_raw_data_list <- cpih_download(force_download = redownload_all)
 
-cpih_rate <- read.csv(paste0(INTERMEDIATE,Sys.Date(),"_raw_cpih_rate.csv"), header=FALSE, stringsAsFactors=FALSE) %>% 
+#.............................................................................
+### Process inflation data ----
+#.............................................................................
+
+# Load raw datasets and clean up
+cpih_rate <- cpih_raw_data_list[["cpih_rate"]] %>% 
   rename(month_date=V1,cpih_yoy=V2) %>% 
   filter(grepl("\\d{4} \\w{3}",month_date))
 
-cpih_stats <- read.csv(paste0(INTERMEDIATE,Sys.Date(),"_raw_cpih.csv"), header=FALSE, stringsAsFactors=FALSE) %>% 
+# Merge rate and index data
+cpih_stats <- cpih_raw_data_list[["cpih_index"]] %>% 
   rename(month_date=V1,cpih_index_2015=V2) %>% 
   filter(grepl("\\d{4} \\w{3}",month_date)) %>% 
   merge(cpih_rate,by="month_date") %>%   # Merge with annual rate
@@ -71,6 +73,10 @@ cpih_full_year <- tibble( # Create dataset with future months
          cpih_index_2015 = case_when( forecast_month==1 ~ cpih_index_2015*(cpih_annualised_mom^(months_in_future)), 
                                       TRUE ~ cpih_index_2015),
          cpih_index_feb20 = 100*cpih_index_2015/cpih_index_2015[date_day=="2020-02-01"])
+
+#.............................................................................
+### Combine with PAYE pay data ----
+#.............................................................................
 
 # Produce dataset with inflation-adjustment on pay
 cpih_pay_stats <- paye_pay_stats %>%

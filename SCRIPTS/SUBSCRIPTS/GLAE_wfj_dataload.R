@@ -6,8 +6,15 @@
 ### Download Workforce Jobs data ----
 #.............................................................................
 
-wfj_stats <- nomis_get_data(id = "NM_130_1", time = c("2010-01", "latest"), geography = c(london_geo_code,uk_geo_code),
-                            industry=c(37748736,150994945:150994964)) %>% 
+# Download, or load, dataset
+wfj_stats_raw <- wfj_download(force_download = redownload_all)
+
+
+#.............................................................................
+### Process data and output ----
+#.............................................................................
+
+wfj_stats <- wfj_stats_raw %>% 
   clean_names() %>% 
   select(c("date","date_name","geography","geography_name","industry","industry_code","industry_name","item","item_name","measures","measures_name","obs_value","record_count")) %>% 
   rename(date_month=date)  %>% 
@@ -52,4 +59,8 @@ wfj_stats <- nomis_get_data(id = "NM_130_1", time = c("2010-01", "latest"), geog
   arrange(date_day,geography,item,measures,industry)
 
 
-fwrite(wfj_stats, file = paste0(INTERMEDIATE,Sys.Date(),"_wfj.csv"), na = "NaN")
+# Helper dataset to reduce number of filters used in markdown
+wfj_tot_value_stats <- wfj_stats %>% 
+  filter(measures_name == "Value" & industry_name == "Total")
+
+
