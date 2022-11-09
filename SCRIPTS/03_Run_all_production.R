@@ -47,6 +47,9 @@
   # Run CCLB -TODO: remove need for clearing environment
   rm(list = ls()) #Empty environment
   
+  # ACTION: set whether to re-download all datasets, even if already exists
+  redownload_all <- FALSE
+  
   # HERE package needed for dynamic pathfinding
   library("here") 
   
