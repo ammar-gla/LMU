@@ -32,10 +32,10 @@
   source(paste0(SUBSCRIPTS,"GLAE_wfj_dataload",".r"))
   
   # Misc datasets - LFS, CC and geographical
-  source(here::here("SCRIPTS",paste0("01a_LMU_dataload.r")))
+  source(paste0(SUBSCRIPTS,"GLAE_LMU_dataload.r"))
   
   # Produce LMU markdown
-  rmarkdown::render(paste0(SCRIPTS,"01b_LMU_markdown_content.Rmd"),
+  rmarkdown::render(paste0(SCRIPTS,"01_LMU_markdown_content.Rmd"),
                     output_file = paste0(HTML_OUT,"LMU ", format(Sys.Date(),"%B %Y"), 
                                         ".html"))
   
