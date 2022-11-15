@@ -209,13 +209,13 @@ Contact: [Ammar Ljubijankic Kutasi](mailto:ammar.ljubijankic@london.gov.uk)
 <br/>
 
 ::: {.quotebox .quote_symbol}
-Unemployment in London fell to a record low (4.0%), as did the UK rate for the second month running (3.5%), but other headline labour market indicators continue to present a less positive outlook.
+Payrolled employee numbers in London  continued to grow to the highest levels on record, while the unemployment rate remained low as London recorded the largest yearly decrease among all regions (1.4pp). 
 <br><br>
-The inactivity rate remains elevated, with the rise on the quarter partially due to record-high rates of long-term illness nationally. The employment rate in London fell on the quarter and remains 1.7 percentage points below pre-pandemic peaks.
+XXX
 <br><br>
-Vacancy numbers have been falling nationally in three consecutive quarters and online job posting numbers in London have also been on the decrease since peaking in early 2022.
+XXX
 <br><br>
-Inflation on the year remains high, leading to a real-terms decrease in median pay in London despite a small monthly increase in nominal pay.
+XXX
 :::
 
 
@@ -231,11 +231,9 @@ Inflation on the year remains high, leading to a real-terms decrease in median p
 
 -   The **employment rate** in London was estimated at `r emp_rate`% for the three months ending `r lfs_last_month`, `r condi_text(emp_pp_quart,"up")` `r abs2(emp_pp_quart)` percentage points (pp) on the previous quarter and `r condi_text(emp_pp_year,"up")` `r abs2(emp_pp_year)`pp on the same period in the previous year. London's employment rate was lower than the UK average (`r emp_rate_uk`%).
 
--   The **unemployment rate** reached a record low, though still higher than the UK average. London's unemployment rate was estimated at `r unem_rate`%, `r condi_text(unem_pp_quart,"up")` `r abs2(unem_pp_quart)`pp on the quarter and `r condi_text(unem_pp_year,"up")` `r abs2(unem_pp_year)`pp from a year earlier. The UK average was `r unem_rate_uk`%.
+-   The **unemployment rate** was still higher than the UK average. London's unemployment rate was estimated at `r unem_rate`%, `r condi_text(unem_pp_quart,"up")` `r abs2(unem_pp_quart)`pp on the quarter and `r condi_text(unem_pp_year,"up")` `r abs2(unem_pp_year)`pp from a year earlier. The UK average was `r unem_rate_uk`%.
 
 -   London's **inactivity rate** (the measure of those not looking and/or not available to work) was estimated at `r inact_rate`%. This was `r condi_text(inact_pp_quart,"up")` `r abs2(inact_pp_quart)`pp on the previous quarter and `r condi_text(inact_pp_year,"up")` `r abs2(inact_pp_year)`pp on the previous year, and is lower than the UK-wide estimate of `r inact_rate_uk`%.
-
--    The total number of **workforce jobs** `r condi_text(wfj_d_quart,"increase")` by `r abs2(wfj_d_quart)`, or `r abs2(wfj_p_quart)`%, between the `r wfj_oldquarter` quarter of 2021 and `r  wfj_newquarter` quarter of `r wfj_year`, and was `r abs2(wfj_d_dec19)`, or `r abs2(wfj_p_dec19)`%, `r condi_text(wfj_d_dec19,"above")` pre-pandemic (December 2019) levels. This is the first quarter in which workforce jobs exceeded the pre-pandemic peak.
 
 <a href="#top">Back to top</a>
 
@@ -399,7 +397,7 @@ The count of payrolled employees from HMRC's Pay As You Earn (PAYE) RTI dataset 
     coord_cartesian(clip = 'off') +
     geom_hline(aes(yintercept=0), colour="gray45") +
     scale_y_continuous(labels = percent_format(accuracy=1),
-                       limits = c(0,0.04)) +
+                       limits = c(0,0.05)) +
     scale_x_discrete(labels = function(x) str_wrap(x, width = 10)) +
     theme(plot.margin = unit(c(1,1,1,1), "cm"),axis.text=element_text(size=12))+
     labs(title =  "Payrolled employees, change since February 2020 by NUTS2 region",
@@ -819,7 +817,7 @@ Some industries have yet to recover from the pandemic. Comparing **`r paye_ind_l
     scale_color_manual(values = rev(pal), aesthetics = "colour")+
     scale_fill_manual(values = rev(pal), aesthetics = "fill")+
     theme_set(theme_gla(gla_theme = "default", y_label_length=100)) + #GLA theme and removes lines below y-axis labels
-    scale_y_continuous(limits = c(-0.10, 0.16), labels = percent_format(accuracy=1)) +
+    scale_y_continuous(limits = c(-0.05, 0.1), labels = percent_format(accuracy=1)) +
     theme(plot.margin = unit(c(1,1,1,1), "cm"))+
     scale_x_discrete(expand = c(0,0)) +
     theme(panel.grid.major.y = element_blank(), #removed y grid
@@ -1050,7 +1048,7 @@ For `r lfs_previous_month` to `r lfs_last_month`:
 
 -   The 16-64 employment rate in London was estimated at `r emp_rate`%; this represents `r condi_text(emp_pp_quart,"noun")` of `r abs2(emp_pp_quart)` percentage points (pp) on the previous quarter and `r condi_text(emp_pp_year,"noun")` of `r abs2(emp_pp_year)`pp from a year earlier.
 
--   The overall UK employment rate was estimated at `r emp_rate_uk`%, `r condi_text(emp_pp_quart_uk,"noun")` of `r abs2(emp_pp_quart_uk)`pp on the quarter and `r condi_text(emp_pp_year_uk,"noun")` of `r abs2(emp_pp_year_uk)`pp on the year.
+-   The overall UK employment rate was estimated at `r emp_rate_uk`%, unchanged on the quarter and `r condi_text(emp_pp_year_uk,"noun")` of `r abs2(emp_pp_year_uk)`pp on the year.
 
 <a href="#top">Back to top</a>
 
@@ -1446,233 +1444,6 @@ wfj_self_p_dec19 <- perc_form(100*(wfj_tot_value_stats %>%
                                         pull(obs_value))-1),
                               d = digits_perc)
 
-
-```
-
-<hr  width="100%" style="background-color: rgb(134,139,142);height: 1.0px;margin: 0;"/>
-
-<br/>
-
-## Workforce jobs {.tabset}
-
-<br/>
-
-### Number of workforce jobs
-
-The Workforce Jobs series provides quarterly estimates of the number of jobs in the UK and is the ONS' preferred source of jobs broken down by region of workplace and industry.
-
-The latest data for `r wfj_latest_month` show that:
-
--   The total number of workforce jobs in London was estimated at `r wfj_level` million, `r condi_text(wfj_p_quart,"noun")` of approximately `r abs2(wfj_p_quart)`% from `r wfj_previous_month` against a UK average of `r wfj_p_quart_uk`%.
-
--   The latest estimate represents `r condi_text(wfj_d_dec19,"noun")` of approximately `r abs2(wfj_d_dec19)`, or `r abs2(wfj_p_dec19)`%, from December 2019 levels (the pre-pandemic peak in London) compared with `r condi_text(wfj_p_dec19_uk,"noun")` of `r abs2(wfj_p_dec19_uk)`% across the UK on average.
-
--   Total jobs includes both employee and self-employment jobs alongside other types of employment; since December 2019, the latest employee jobs estimate has `r condi_text(wfj_emp_d_dec19,"increase")` by `r abs2(wfj_emp_d_dec19)` (`r abs2(wfj_emp_p_dec19)`%) while the self-employment jobs estimate has `r condi_text(wfj_self_d_dec19,"increase")` by `r abs2(wfj_self_d_dec19)` (`r abs2(wfj_self_p_dec19)`%).
-
-<a href="#top">Back to top</a>
-
-```{r workforce jobs trend, echo=FALSE,fig.cap = wfjcap, out.width='100%',fig.alt=paste0("Line chart showing the number of workforce jobs in London from January 2010 to ",wfj_latest_month)}
-  
-  
-  pal <- gla_pal(gla_theme = "default", palette_type = "highlight", n = c(1, 1))
-  
-  # Make the wfj stats wide to have employee and self-employee jobs in label.
-  wfj_stats_wide <- wfj_stats %>% 
-    filter( date_day >= "2010-03-01" & measures_name == "Value" & geography_name == "London" & industry_name == "Total" ) %>% 
-    select(date_month,date_day,geography_name,industry_name,item_name,obs_value) %>% 
-    pivot_wider(id_cols=c(date_month,date_day,geography_name,industry_name),names_from = item_name,values_from=obs_value) %>% 
-    clean_names()
-  
-  wfj_time_chart <- wfj_stats_wide %>%
-    ggplot(mapping = aes(x = date_day, y = total_workforce_jobs,
-                         colour = geography_name, group = geography_name,
-                         text = paste0( format(date_day,'%B %Y'), "\n",
-                                       "Total jobs: ", value_form(total_workforce_jobs,s=3),"k", "\n",
-                                       "Employee jobs: ", value_form(employee_jobs,s=3),"k", "\n",
-                                       "Self-employed jobs: ", value_form(self_employment_jobs,s=3),"k", "\n"))) +
-    ggla_line(aes(size= geography_name)) +
-    scale_size_manual(values = c(2 * mm_to_pt, 1 * mm_to_pt)) +
-    scale_colour_manual(values = pal) +
-    ggla_highlight(filter_type = "end") +
-    # ggla_highlight(mapping = aes(label = paste0(format(total_workforce_jobs /1000, digits = 1, big.mark=","))),
-    #                geom = GeomGLATextHighlight, filter_type = "end",  size = 4.5,
-    #                position = position_nudge(y = c(200,0)))+
-    geom_vline(aes(xintercept = as.numeric(ymd("2020-03-01"))),
-                 linetype = "dotted",
-                 size = 1 * mm_to_pt,
-                 colour = rgb(166,166,166,maxColorValue = 255)) + # mark lockdowns start+
-    coord_cartesian(clip = 'off') +
-    scale_y_continuous(expand = c(0, 0), labels = comma_format(),
-                       limits = c(4.5e6,6.5e6)) +
-    scale_x_date( date_breaks = "1 year",
-                  date_labels = "%Y",
-                  expand = expansion( mult = c(0.05,0.05))) +
-    theme(plot.margin = unit(c(1,1,1,1), "cm"))+
-    labs(title =  "Total number of workforce jobs in London",
-         subtitle = paste0("Seasonally adjusted, latest data for ", wfj_latest_month),
-         caption = "\nSource: ONS Workforce Jobs.\n\nNote: The margin of error for all jobs is +/- 0.9% for London and +/- 0.3% for the UK. \nMarch 2020 indicated by dotted line.")+
-    theme(plot.caption = element_text(color = rgb(166,166,166,maxColorValue = 255)))
-
-  save_GLA_plot(plot_name = "wfj_jobs")
-
-  LMU_plotly_settings(ch_name = wfj_time_chart,
-                      title_text = 'paste0("Total number of workforce jobs in London")',
-                      subtitle_text = 'paste0("Seasonally adjusted, latest data for ", wfj_latest_month)',
-                      hover_mode = "x") %>% 
-    hide_legend()
-  
-  wfjcap <- paste0("Source: ONS Workforce Jobs.","<br>","<br>", "Note: The margin of error for all jobs is +/- 0.9% for London and +/- 0.3% for the UK. March 2020 indicated by dotted line.")
-
-
-```
-
-```{r,echo=FALSE}
-# Find industries with lowest and highest growth in recent data
-  
-  wfj_sector_thresh <- 25000
-  
-  lowest_growth <- wfj_stats %>% filter(item_name == "total workforce jobs" & date_day == max(date_day) & geography_name == "London" & measures_name == "Value" & obs_value>=wfj_sector_thresh & !is.na(change_p_dec19_within_date_rank)) %>% slice_max(change_p_dec19_within_date_rank,n=3) 
-  
-  highest_growth <- wfj_stats %>% filter(item_name == "total workforce jobs" & date_day == max(date_day) & geography_name == "London" & measures_name == "Value" & obs_value>=wfj_sector_thresh & !is.na(change_p_dec19_within_date_rank)) %>% slice_min(change_p_dec19_within_date_rank,n=3) 
-  
-  lowest_growth_q <- wfj_stats %>% filter(item_name == "total workforce jobs" & date_day == max(date_day) & geography_name == "London" & measures_name == "Value" & obs_value>=wfj_sector_thresh & !is.na(change_p_quart_within_date_rank)) %>% slice_max(change_p_quart_within_date_rank,n=3) 
-  
-  highest_growth_q <- wfj_stats %>% filter(item_name == "total workforce jobs" & date_day == max(date_day) & geography_name == "London" & measures_name == "Value" & obs_value>=wfj_sector_thresh & !is.na(change_p_quart_within_date_rank)) %>% slice_min(change_p_quart_within_date_rank,n=3) 
-  
-  ## Find industry names and growth figures
-  ## by year
-  
-  low_1_name <- lowest_growth %>% filter(row_number()==1) %>% pull(industry_name_simple)
-    
-  low_1_d <- value_form(lowest_growth %>% filter(row_number()==1) %>% pull(change_since_dec19),s = signif_thous)
-    
-  low_1_p <- perc_form(lowest_growth %>% filter(row_number()==1) %>% pull(change_perc_since_dec19),d = digits_perc)
-  
-  low_2_name <- lowest_growth %>% filter(row_number()==2) %>% pull(industry_name_simple)
-    
-  low_2_d <- value_form(lowest_growth %>% filter(row_number()==2) %>% pull(change_since_dec19),s = signif_thous)
-    
-  low_2_p <- perc_form(lowest_growth %>% filter(row_number()==2) %>% pull(change_perc_since_dec19),d = digits_perc)
-  
-  low_3_name <- lowest_growth %>% filter(row_number()==3) %>% pull(industry_name_simple)
-    
-  low_3_d <- value_form(lowest_growth %>% filter(row_number()==3) %>% pull(change_since_dec19),s = signif_thous)
-    
-  low_3_p <- perc_form(lowest_growth %>% filter(row_number()==3) %>% pull(change_perc_since_dec19),d = digits_perc)
-  
-  
-  high_1_name <- highest_growth %>% filter(row_number()==1) %>% pull(industry_name_simple)
-    
-  high_1_d <- value_form(highest_growth %>% filter(row_number()==1) %>% pull(change_since_dec19),s = signif_thous)
-    
-  high_1_p <- perc_form(highest_growth %>% filter(row_number()==1) %>% pull(change_perc_since_dec19),d = digits_perc)
-  
-  high_2_name <- highest_growth %>% filter(row_number()==2) %>% pull(industry_name_simple)
-    
-  high_2_d <- value_form(highest_growth %>% filter(row_number()==2) %>% pull(change_since_dec19),s = signif_thous)
-    
-  high_2_p <- perc_form(highest_growth %>% filter(row_number()==2) %>% pull(change_perc_since_dec19),d = digits_perc)
-  
-  high_3_name <- highest_growth %>% filter(row_number()==3) %>% pull(industry_name_simple)
-    
-  high_3_d <- value_form(highest_growth %>% filter(row_number()==3) %>% pull(change_since_dec19),s = signif_thous)
-    
-  high_3_p <- perc_form(highest_growth %>% filter(row_number()==3) %>% pull(change_perc_since_dec19),d = digits_perc)
-
-```
-
-<hr  width="100%" style="background-color: rgb(134,139,142);height: 1.0px;margin: 0;"/>
-
-<br/>
-
-### Workforce jobs by sector
-
-Between December 2019 and `r wfj_latest_month`\*:
-
--   `r low_1_name` recorded the largest percentage decrease in jobs in London (`r low_1_d` or `r low_1_p`%); this was followed by `r low_2_name` (`r low_2_d` or `r low_2_p`%) and `r low_3_name` (`r low_3_d` or `r low_3_p`%).
-
--   The following industry groups shown in the chart saw the largest positive percentage change in jobs in London:
-
-    -   `r high_1_name` (`r high_1_d` or `r high_1_p`%)
-    -   `r high_2_name` (`r high_2_d` or `r high_2_p`%)
-    -   `r high_3_name` (`r high_3_d` or `r high_3_p`%)
-
-<a href="#top">Back to top</a>
-
-<foot>\*Note: excluding sectors with less than `r value_form(wfj_sector_thresh,s = signif_thous)` jobs in London. </foot>
-
-```{r wfj sector, echo=FALSE,fig.cap = wfjseccap, out.width='100%',fig.alt=paste0("Horizontal bar chart showing the change in the number of workforce jobs in separate bars for London and the UK, for each industry, from December 2019 to ",wfj_latest_month)}
-  
-  pal <- gla_pal(gla_theme = "default", palette_type = "highlight", n = c(1, 1))
-  
-  # Select industries large in London, e.g. 20k+
-  lon_large_inds <- wfj_stats %>%
-    filter( item_name == "total workforce jobs" & date_day == max(date_day) & measures_name == "Value" & obs_value>=wfj_sector_thresh 
-            & geography_name =="London") %>% 
-    select(industry_name_simple)
-  
-  lon_large_inds <- unlist(lon_large_inds)
-  
-  wjf_industry_bar <- wfj_stats %>%
-    filter( item_name == "total workforce jobs" & date_day == max(date_day) & measures_name == "Value" &
-              industry_name_simple %in% lon_large_inds & geography_name %in% c("London", "United Kingdom")) %>% 
-    group_by(geography_name) %>% #To ensure chart ranking is correct, make rank based on London and assign within sector
-    mutate(chart_ranking = case_when( 
-      industry_name_simple == "Total" & geography_name=="London" ~ 1,
-      !(industry_name_simple == "Total") & geography_name=="London" ~ dense_rank(desc(change_perc_since_dec19))+1,
-      TRUE ~ 99))  %>% 
-    group_by(industry_name_simple) %>% 
-    mutate(chart_ranking=min(chart_ranking)) %>% 
-    ungroup() %>% 
-    arrange(chart_ranking) %>% 
-    ggplot(mapping = aes(x =  factor(reorder(industry_name_simple, -chart_ranking)), 
-                         y = change_perc_since_dec19, 
-                         colour = factor(reorder(geography_name,desc(geography_name))) ,#since horizontal bar reverses orders, we need to reverse too
-                         fill=factor(reorder(geography_name,desc(geography_name))),
-                         text = paste0(industry_name_simple, "\n",
-                                      geography_name, "\n",
-                                      "Change: ", perc_form(change_perc_since_dec19),"%", "\n"))) +
-    geom_bar(stat = "identity", position = position_dodge(), width=0.5) +
-    geom_hline(aes(yintercept=0), colour="gray45") +
-    geom_vline(xintercept=c(length(lon_large_inds) - 0.5),
-               colour="gray45",
-               linetype = "dotted",
-               size = 1 * mm_to_pt)+ #adds line below total
-    scale_color_manual(values = rev(pal), aesthetics = "colour")+
-    scale_fill_manual(values = rev(pal), aesthetics = "fill")+
-    theme_set(theme_gla(gla_theme = "default", y_label_length=100)) + #GLA theme and removes lines below y-axis labels
-    scale_y_continuous(limits = c(-14, 12), labels = dollar_format(prefix = "", 
-                                                                   suffix = "%", 
-                                                                   largest_with_cents = 1)) +
-    theme(plot.margin = unit(c(1,1,1,1), "cm"))+
-    scale_x_discrete(expand = c(0,0)) +
-       theme(panel.grid.major.y = element_blank(), #removed y grid
-        panel.grid.minor.y = element_blank(), # removes small y grid
-        panel.grid.major.x = element_line( size=.5 ), # removes x grid
-        axis.text.y = ggplot2::element_text( # ensures  y axis labels stay outside chart
-              hjust = 0, vjust = 0.5,
-              margin = ggplot2::margin(t = 0, r = 0, b = 0, l = 0,
-                                       unit = "pt")),
-        axis.ticks.length.y = ggplot2::unit(x = 0, units = "pt")) + #removes ticks from y axis
-    coord_flip()+
-    guides(colour=guide_legend(reverse=TRUE),
-           fill=guide_legend(reverse=TRUE)) +
-    labs(title = paste0("Percentage change in workforce jobs by industry group"),
-         subtitle = paste0("Seasonally adjusted, between December 2019 and ", wfj_latest_month),
-         caption = "\nSource: ONS Workforce Jobs.\n\nNote: The margin of error for all jobs is +/- 0.9% for London and +/- 0.3% for the UK.")+
-    theme(plot.caption = element_text(color = rgb(166,166,166,maxColorValue = 255)))
-  
-  save_GLA_plot(plot_name = "wfj_industries")
-  
-  LMU_plotly_settings(ch_name = wjf_industry_bar,
-                      title_text = 'paste0("Percentage change in workforce jobs by industry group")',
-                      subtitle_text = 'paste0("Seasonally adjusted, between December 2019 and ", wfj_latest_month)',
-                      hover_mode = "closest") %>% 
-    layout(xaxis = list(showgrid=TRUE),
-           yaxis = list(showgrid=FALSE)) %>% 
-   reverse_legend_labels()
-
-  wfjseccap <- paste0("Source: ONS Workforce Jobs.","<br>","<br>", "Note: The margin of error for all jobs is +/- 0.9% for London and +/- 0.3% for the UK.")
 
 ```
 
