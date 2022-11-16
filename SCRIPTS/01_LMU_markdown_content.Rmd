@@ -238,6 +238,9 @@ National headlines report nominal average (mean) weekly earnings rising at 6.0% 
 
 -   London's **inactivity rate** (the measure of those not looking and/or not available to work) was estimated at `r inact_rate`%. This was `r condi_text(inact_pp_quart,"up")` `r abs2(inact_pp_quart)`pp on the previous quarter and `r condi_text(inact_pp_year,"up")` `r abs2(inact_pp_year)`pp on the previous year, and is lower than the UK-wide estimate of `r inact_rate_uk`%.
 
+-   The total number of **workforce jobs** `r condi_text(wfj_d_quart,"increase")` by `r abs2(wfj_d_quart)`, or `r abs2(wfj_p_quart)`%, between the `r wfj_oldquarter` quarter of 2021 and `r  wfj_newquarter` quarter of `r wfj_year`, and was `r abs2(wfj_d_dec19)`, or `r abs2(wfj_p_dec19)`%, `r condi_text(wfj_d_dec19,"above")` pre-pandemic (December 2019) levels. This is the first quarter in which workforce jobs exceeded the pre-pandemic peak.
+
+
 <a href="#top">Back to top</a>
 
 <hr  width="100%" style="background-color: rgb(134,139,142);height: 1.0px;margin: 0;"/>
