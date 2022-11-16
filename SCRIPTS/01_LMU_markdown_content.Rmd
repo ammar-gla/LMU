@@ -209,13 +209,16 @@ Contact: [Ammar Ljubijankic Kutasi](mailto:ammar.ljubijankic@london.gov.uk)
 <br/>
 
 ::: {.quotebox .quote_symbol}
-Unemployment in London fell to a record low (4.0%), as did the UK rate for the second month running (3.5%), but other headline labour market indicators continue to present a less positive outlook.
+
+The London labour market remained steady in October according to the latest data. 
 <br><br>
-The inactivity rate remains elevated, with the rise on the quarter partially due to record-high rates of long-term illness nationally. The employment rate in London fell on the quarter and remains 1.7 percentage points below pre-pandemic peaks.
+Payrolled employee numbers in London continued to rebound above pre-pandemic levels while the unemployment rate remained close to record lows, the employment rate ticked up and the economic inactivity rate stabilised. 
 <br><br>
-Vacancy numbers have been falling nationally in three consecutive quarters and online job posting numbers in London have also been on the decrease since peaking in early 2022.
+However, the latest pay data indicate a worsening cost of living crisis.
 <br><br>
-Inflation on the year remains high, leading to a real-terms decrease in median pay in London despite a small monthly increase in nominal pay.
+National headlines report nominal average (mean) weekly earnings rising at 6.0% year-on-year across the whole economy, which after adjusting for inflation is a real-terms fall of 2.6%. But the most timely estimates of median employee pay for October 2022 showed declines on the previous month even before inflation – the first notable month-on-month falls since the start of the pandemic in London and the UK. These flash estimates could be revised when more data are received next month.
+<br><br>
+
 :::
 
 
@@ -231,11 +234,12 @@ Inflation on the year remains high, leading to a real-terms decrease in median p
 
 -   The **employment rate** in London was estimated at `r emp_rate`% for the three months ending `r lfs_last_month`, `r condi_text(emp_pp_quart,"up")` `r abs2(emp_pp_quart)` percentage points (pp) on the previous quarter and `r condi_text(emp_pp_year,"up")` `r abs2(emp_pp_year)`pp on the same period in the previous year. London's employment rate was lower than the UK average (`r emp_rate_uk`%).
 
--   The **unemployment rate** reached a record low, though still higher than the UK average. London's unemployment rate was estimated at `r unem_rate`%, `r condi_text(unem_pp_quart,"up")` `r abs2(unem_pp_quart)`pp on the quarter and `r condi_text(unem_pp_year,"up")` `r abs2(unem_pp_year)`pp from a year earlier. The UK average was `r unem_rate_uk`%.
+-   The **unemployment rate** was still higher than the UK average. London's unemployment rate was estimated at `r unem_rate`%, `r condi_text(unem_pp_quart,"up")` `r abs2(unem_pp_quart)`pp on the quarter and `r condi_text(unem_pp_year,"up")` `r abs2(unem_pp_year)`pp from a year earlier. The UK average was `r unem_rate_uk`%.
 
 -   London's **inactivity rate** (the measure of those not looking and/or not available to work) was estimated at `r inact_rate`%. This was `r condi_text(inact_pp_quart,"up")` `r abs2(inact_pp_quart)`pp on the previous quarter and `r condi_text(inact_pp_year,"up")` `r abs2(inact_pp_year)`pp on the previous year, and is lower than the UK-wide estimate of `r inact_rate_uk`%.
 
--    The total number of **workforce jobs** `r condi_text(wfj_d_quart,"increase")` by `r abs2(wfj_d_quart)`, or `r abs2(wfj_p_quart)`%, between the `r wfj_oldquarter` quarter of 2021 and `r  wfj_newquarter` quarter of `r wfj_year`, and was `r abs2(wfj_d_dec19)`, or `r abs2(wfj_p_dec19)`%, `r condi_text(wfj_d_dec19,"above")` pre-pandemic (December 2019) levels. This is the first quarter in which workforce jobs exceeded the pre-pandemic peak.
+-   The total number of **workforce jobs** `r condi_text(wfj_d_quart,"increase")` by `r abs2(wfj_d_quart)`, or `r abs2(wfj_p_quart)`%, between the `r wfj_oldquarter` quarter of 2021 and `r  wfj_newquarter` quarter of `r wfj_year`, and was `r abs2(wfj_d_dec19)`, or `r abs2(wfj_p_dec19)`%, `r condi_text(wfj_d_dec19,"above")` pre-pandemic (December 2019) levels. This is the first quarter in which workforce jobs exceeded the pre-pandemic peak.
+
 
 <a href="#top">Back to top</a>
 
@@ -399,7 +403,7 @@ The count of payrolled employees from HMRC's Pay As You Earn (PAYE) RTI dataset 
     coord_cartesian(clip = 'off') +
     geom_hline(aes(yintercept=0), colour="gray45") +
     scale_y_continuous(labels = percent_format(accuracy=1),
-                       limits = c(0,0.04)) +
+                       limits = c(0,0.05)) +
     scale_x_discrete(labels = function(x) str_wrap(x, width = 10)) +
     theme(plot.margin = unit(c(1,1,1,1), "cm"),axis.text=element_text(size=12))+
     labs(title =  "Payrolled employees, change since February 2020 by NUTS2 region",
@@ -819,7 +823,7 @@ Some industries have yet to recover from the pandemic. Comparing **`r paye_ind_l
     scale_color_manual(values = rev(pal), aesthetics = "colour")+
     scale_fill_manual(values = rev(pal), aesthetics = "fill")+
     theme_set(theme_gla(gla_theme = "default", y_label_length=100)) + #GLA theme and removes lines below y-axis labels
-    scale_y_continuous(limits = c(-0.10, 0.16), labels = percent_format(accuracy=1)) +
+    scale_y_continuous(limits = c(-0.05, 0.1), labels = percent_format(accuracy=1)) +
     theme(plot.margin = unit(c(1,1,1,1), "cm"))+
     scale_x_discrete(expand = c(0,0)) +
     theme(panel.grid.major.y = element_blank(), #removed y grid
@@ -1673,7 +1677,6 @@ Between December 2019 and `r wfj_latest_month`\*:
    reverse_legend_labels()
 
   wfjseccap <- paste0("Source: ONS Workforce Jobs.","<br>","<br>", "Note: The margin of error for all jobs is +/- 0.9% for London and +/- 0.3% for the UK.")
-
 ```
 
 <hr  width="100%" style="background-color: rgb(134,139,142);height: 1.0px;margin: 0;"/>
