@@ -288,7 +288,7 @@ LMU_plotly_settings(ch_name = cc_region_comp_chart,
   hide_legend()
 
 
-lon_cc_cap <- paste0("Source: Claimant count by sex and age (Nomis) – data is not seasonally adjusted (NSA).","<br>","<br>", "Note: March 2020 indicated by dotted line.")
+lon_cc_cap <- paste0("Source: Claimant count by sex and age (Nomis) – data is not seasonally adjusted (NSA).")
 
 ```
 <hr  width="100%" style="background-color: rgb(134,139,142);height: 1.0px;margin: 0;"/>
