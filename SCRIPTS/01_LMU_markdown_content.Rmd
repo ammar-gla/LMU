@@ -204,7 +204,7 @@ output:
 ```
 
 <hr  width="100%" style="background-color: rgb(134,139,142);height: 1.0px;margin: 0;"/>
-Contact: [Ammar Ljubijankic Kutasi](mailto:ammar.ljubijankic@london.gov.uk)
+Contact: [Ammar Ljubijankić Kutasi](mailto:ammar.ljubijankic@london.gov.uk)
 <!-- Summary of findings - MANUALLY ADJUST -->
 <br/>
 

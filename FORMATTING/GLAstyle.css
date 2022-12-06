@@ -156,15 +156,12 @@ h1,h2,h3,h4,h5,h6{
   font-size: 20pt;
   font-family: Arial;
   color: rgb(53,61,66);
-
-h1, h2, h3 {
-    margin-top: 84px;
-    margin-bottom: 160px;
 }
+
 
 /* The title and information */
 h1.title {
-  font-size: 20pt;
+  font-size: 28pt;
   font-family: Arial;
   color: rgb(53,61,66);
 }
@@ -186,8 +183,6 @@ h4.author {
 a {
   color: #337ab7;
 }
-
-
 
 .header {
   padding: 60px;
