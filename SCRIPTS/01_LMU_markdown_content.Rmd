@@ -352,8 +352,6 @@ The count of payrolled employees from HMRC's Pay As You Earn (PAYE) RTI dataset 
           legend.position = "none")
   
   save_GLA_plot(plot_name = "paye_emps_line")
-  save_GLA_plot(plot_name = "paye_emps_line",path=AD_HOC,w=6)
-  
   
   # Plotly chart
   
@@ -415,7 +413,6 @@ The count of payrolled employees from HMRC's Pay As You Earn (PAYE) RTI dataset 
           plot.caption = element_text(color = rgb(166,166,166,maxColorValue = 255)))
   
   save_GLA_plot(plot_name = "paye_emps_nuts2_feb20")
-  save_GLA_plot(plot_name = "paye_emps_nuts2_feb20",path=AD_HOC,w=6)
   
   LMU_plotly_settings(ch_name = paye_emps_nuts2_feb20,
                       title_text = 'paste0("Payrolled employees, change since February 2020 by NUTS2 region")',
@@ -476,7 +473,6 @@ The count of payrolled employees from HMRC's Pay As You Earn (PAYE) RTI dataset 
     theme(plot.caption = element_text(color = rgb(166,166,166,maxColorValue = 255)))
   
   save_GLA_plot(plot_name = "paye_emps_nuts2_yoy")
-  save_GLA_plot(plot_name = "paye_emps_nuts2_yoy",path=AD_HOC,w=6)
   
   LMU_plotly_settings(ch_name = paye_emps_nuts2_yoy,
                       title_text = 'paste0("Payrolled employees, change on previous year by NUTS2 region")',
@@ -627,7 +623,6 @@ In **`r paye_overall_last_month`**:
     theme(plot.caption = element_text(color = rgb(166,166,166,maxColorValue = 255)))
   
   save_GLA_plot(plot_name = "pay_trend_chart")
-  save_GLA_plot(plot_name = "pay_trend_chart",path=AD_HOC,w=6)
   
   # Plotly chart
   LMU_plotly_settings(ch_name = pay_trend_chart,
@@ -722,7 +717,6 @@ In **`r cpih_last_month_form`**, the latest month for which CPIH inflation data 
     theme(plot.caption = element_text(color = rgb(166,166,166,maxColorValue = 255)))
   
   save_GLA_plot(plot_name = "real_nom_chart")
-  save_GLA_plot(plot_name = "real_nom_chart",path=AD_HOC,w=6)
   
   # Plotly chart
   LMU_plotly_settings(ch_name = real_nom_chart,
@@ -849,7 +843,6 @@ Some industries have yet to recover from the pandemic. Comparing **`r paye_ind_l
     theme(plot.caption = element_text(color = rgb(166,166,166,maxColorValue = 255)))
   
   save_GLA_plot(plot_name = "paye_emps_ind_feb20")
-  save_GLA_plot(plot_name = "paye_emps_ind_feb20",path=AD_HOC,w=6)
   
   LMU_plotly_settings(ch_name = paye_emps_ind_feb20,
                       title_text = 'paste0("Payrolled employees, change since February 2020 by selected sector")',
@@ -939,7 +932,6 @@ Recent changes in the number of payrolled employees vary by age group. Comparing
     theme(plot.caption = element_text(color = rgb(166,166,166,maxColorValue = 255)))
   
   save_GLA_plot(plot_name = "paye_emps_age_feb20")
-  save_GLA_plot(plot_name = "paye_emps_age_feb20",path=AD_HOC,w=6)
   
   LMU_plotly_settings(ch_name = paye_emps_age_feb20,
                       title_text = 'paste0("Payrolled employees, change since February 2020 by age group")',
@@ -1075,9 +1067,6 @@ For `r lfs_previous_month` to `r lfs_last_month`:
                            caption = "\nSource: ONS Labour Force Survey.\n\nNote: The margin of error is +/- 1.6% for London and +/- 0.4% for the UK. \nMarch 2020 indicated by dotted line.",
                            chart_name = "employment", y_limits = c(70,80), nudge_y = c(-0.5, +0.5)) 
   
-  # Narrow plots for presentations
-  save_GLA_plot(plot_name = "employment_rate",path=AD_HOC,w=6)
-  
   LMU_plotly_settings(ch_name = employment_rate,
                       title_text = 'paste0("Employment rate (% of working age population)")',
                       subtitle_text = 'paste0("Latest data for three-month period ending ", lfs_last_month)',
@@ -1109,9 +1098,6 @@ lfs_regions_emp <- GLAbarchart(data_set = lfs_regions_charting,
                                title = "Employment rate by region (% of working age population)",
                                caption = "\nSource: ONS Labour Force Survey.\n\nNote: The margin of error ranges from +/- 1.6% to +/- 2.6% across regions.",
                                chart_name = "lfs_regions_emp") 
-
-  # Narrow plots for presentations
-  save_GLA_plot(plot_name = "lfs_regions_emp",path=AD_HOC,w=6)
 
 LMU_plotly_settings(ch_name = lfs_regions_emp,
                     title_text = 'paste0("Employment rate by region (% of working age population)")',
@@ -1159,9 +1145,6 @@ For `r lfs_previous_month` to `r lfs_last_month`:
                                caption = "\nSource: ONS Labour Force Survey.\n\nNote: The margin of error is +/- 0.8% for London and +/- 0.2% for the UK. \nMarch 2020 indicated by dotted line.",
                                chart_name = "unemployment", y_limits = c(0,8), nudge_y = c(-0.2,-0.2))
 
-  # Narrow plots for presentations
-  save_GLA_plot(plot_name = "unemployment_rate",path=AD_HOC,w=6)
-  
   LMU_plotly_settings(ch_name = unemployment_rate,
                       title_text = 'paste0("Unemployment rate (% of economically active)")',
                       subtitle_text = 'paste0("Latest data for three-month period ending ", lfs_last_month)',
@@ -1244,9 +1227,6 @@ For `r lfs_previous_month` to `r lfs_last_month`:
                                caption = "\nSource: ONS Labour Force Survey.\n\nNote: The margin of error is not published for London, the UK margin is +/- 0.5%. \nMarch 2020 indicated by dotted line.",
                               chart_name = "inact", y_limits = c(15,25), nudge_y = c(+0.1, +0.6))
 
-  # Narrow plots for presentations
-  save_GLA_plot(plot_name = "econ_inactive",path=AD_HOC,w=6)
-  
   LMU_plotly_settings(ch_name = econ_inactive,
                       title_text = 'paste0("Economic inactivity (% of working age population)")',
                       subtitle_text = 'paste0("Latest data for three-month period ending ", lfs_last_month)',
@@ -1333,9 +1313,6 @@ The latest data for `r claim_period` show that:
                                           caption = "\nSource: ONS Claimant Count by sex and age (seasonally adjusted).\n\nNote: may include some employed claimants on low hours or earnings. \nMarch 2020 indicated by dotted line.",
                                           chart_name = "claimant_count_per", y_limits = c(0,10), nudge_y = 0.5)
 
-
-  save_GLA_plot(plot_name = "claimant_count_percent",path=AD_HOC,w=6)
-  
   LMU_plotly_settings(ch_name = claimant_count_percent,
                       title_text = 'paste0("Claimant count (as a % of residents aged 16 to 64)")',
                       subtitle_text = 'paste0("Latest data for period ", claim_period)',
@@ -1389,7 +1366,6 @@ The latest data for `r claim_period` show that:
     theme(plot.caption = element_text(color = rgb(166,166,166,maxColorValue = 255)))
   
   save_GLA_plot(plot_name = "claimant_age_increase")
-  save_GLA_plot(plot_name = "claimant_age_increase",path=AD_HOC,w=6)
   
   LMU_plotly_settings(ch_name = claimant_count_bar,
                       title_text = 'paste0("Year-on-year percentage change in claimant count")',
@@ -1542,7 +1518,6 @@ The latest data for `r wfj_latest_month` show that:
     theme(plot.caption = element_text(color = rgb(166,166,166,maxColorValue = 255)))
 
   save_GLA_plot(plot_name = "wfj_jobs")
-  save_GLA_plot(plot_name = "wfj_jobs",path=AD_HOC,w=6)
 
   LMU_plotly_settings(ch_name = wfj_time_chart,
                       title_text = 'paste0("Total number of workforce jobs in London")',
@@ -1692,7 +1667,6 @@ Between December 2019 and `r wfj_latest_month`\*:
     theme(plot.caption = element_text(color = rgb(166,166,166,maxColorValue = 255)))
   
   save_GLA_plot(plot_name = "wfj_industries")
-  save_GLA_plot(plot_name = "wfj_industries",path=AD_HOC,w=6)
   
   LMU_plotly_settings(ch_name = wjf_industry_bar,
                       title_text = 'paste0("Percentage change in workforce jobs by industry group")',
