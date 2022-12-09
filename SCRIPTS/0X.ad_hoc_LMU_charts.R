@@ -6,15 +6,16 @@
   # Set specific folder for ad hoc output
   IMAGE_FOLDER <- paste0(here::here(),"/OUTPUT/IMAGES/AD_HOC/")
   
-  ### Geographic codes for UK, London and Boroughs.
-  ### See "Borough codes.csv" in source folder for reference. 
+  # Version of GLA theme for charting
+  gla_theme_type <- "default"
+  theme_set(theme_gla(gla_theme = gla_theme_type))
     
   #*****************************************************************************
   ### Functions ----
   #*****************************************************************************
 
   ### Function to save last chart displayed in PNG and SVG [TO REPLACE STANDARD SIZES]
-  save_GLA_plot <- function(plot_name, w=6, h=8) {
+  save_GLA_plot <- function(plot_name, w=8, h=10) {
     #ggsave(paste0(IMAGE_FOLDER,Sys.Date(),"_",plot_name,".svg"), device = "svg", width = w, height = h, units = "in")
     ggsave(paste0(IMAGE_FOLDER,Sys.Date(),"_",plot_name,".png"), device = "png", width = w, height = h, units = "in")
   }
@@ -96,7 +97,7 @@
     theme(plot.caption = element_text(color = rgb(166,166,166,maxColorValue = 255)),
           legend.position = "none")
   
-  save_GLA_plot(plot_name = "paye_emps_line")
+  save_GLA_plot(plot_name = "paye_emps_line",h=8,w=8)
 
   #*****************************************************************************
   # Paye change feb20 ----
@@ -229,7 +230,7 @@
          caption = "\nSource: HM Revenue and Customs – Pay As You Earn Real Time Information.\n\nNote: Estimates are based on where employees live. March 2020 indicated by dotted line.")+
     theme(plot.caption = element_text(color = rgb(166,166,166,maxColorValue = 255)))
   
-  save_GLA_plot(plot_name = "pay_trend_chart")
+  save_GLA_plot(plot_name = "pay_trend_chart",w=12,h=6)
 
 
   #*****************************************************************************
@@ -295,7 +296,7 @@
          caption = "\nSource: HM Revenue and Customs – Pay As You Earn Real Time Information, ONS.\n\nNote: March 2020 indicated by dotted line.\nInflation measure does not account for region-specific price changes. Sign of inflation rates has been \nreversed (higher inflation rates are associated with lower real pay growth).")+
     theme(plot.caption = element_text(color = rgb(166,166,166,maxColorValue = 255)))
   
-  save_GLA_plot(plot_name = "real_nom_chart")
+  save_GLA_plot(plot_name = "real_nom_chart",w=12,h=6)
 
   #*****************************************************************************
   # Paye industry ----
@@ -403,11 +404,12 @@
   emp_pp_year_uk <-perc_form(lfs_stats %>% filter(sex_name == "Total" & date_day == max(date_day) & geography_name == "United Kingdom"  & value_type_name == "Change on year" & measures == 20207) %>% pull(total_in_employment_aged_16_to_64),d = digits_perc)
   
 
-  ### The below should be the relevant chart
+  # Tweaked date label to fit into narrow image
  employment_rate <- LFS_line_chart(data_set = lfs_stats, y_var = total_in_employment_aged_16_to_64, 
                            title = "Employment rate (% of working age population)",
                            caption = "\nSource: ONS Labour Force Survey.\n\nNote: The margin of error is +/- 1.6% for London and +/- 0.4% for the UK. \nMarch 2020 indicated by dotted line.",
-                           chart_name = "employment", y_limits = c(70,80), nudge_y = c(-0.5, +0.5)) 
+                           chart_name = "employment", y_limits = c(70,80), nudge_y = c(-0.5, +0.5),
+                           date_label="%Y") 
 
   
   #*****************************************************************************
@@ -424,7 +426,8 @@
   unemployment_rate <- LFS_line_chart( data_set = lfs_stats, y_var = total_unemployed_aged_16_and_over, 
                                title = "Unemployment rate (% of economically active)",
                                caption = "\nSource: ONS Labour Force Survey.\n\nNote: The margin of error is +/- 0.8% for London and +/- 0.2% for the UK. \nMarch 2020 indicated by dotted line.",
-                               chart_name = "unemployment", y_limits = c(0,8), nudge_y = c(-0.2,-0.2))
+                               chart_name = "unemployment", y_limits = c(0,8), nudge_y = c(-0.2,-0.2),
+                               date_label="%Y")
 
   #*****************************************************************************
   # Inactivity ----
@@ -446,7 +449,8 @@
   econ_inactive <- LFS_line_chart( data_set = lfs_stats, y_var = total_economically_inactive_aged_16_to_64, 
                               title =  "Economic inactivity (% of working age population)",
                                caption = "\nSource: ONS Labour Force Survey.\n\nNote: The margin of error is not published for London, the UK margin is +/- 0.5%. \nMarch 2020 indicated by dotted line.",
-                              chart_name = "inact", y_limits = c(15,25), nudge_y = c(+0.1, +0.6))
+                              chart_name = "inact", y_limits = c(15,25), nudge_y = c(+0.1, +0.6),
+                              date_label="%Y")
 
   #*****************************************************************************
   # CC rate ----
@@ -561,7 +565,7 @@
          caption = "\nSource: ONS Workforce Jobs.\n\nNote: The margin of error for all jobs is +/- 0.9% for London and +/- 0.3% for the UK. \nMarch 2020 indicated by dotted line.")+
     theme(plot.caption = element_text(color = rgb(166,166,166,maxColorValue = 255)))
 
-  save_GLA_plot(plot_name = "wfj_jobs")
+  save_GLA_plot(plot_name = "wfj_jobs",h=8,w=8)
 
   #*****************************************************************************
   # WFJ industries ----

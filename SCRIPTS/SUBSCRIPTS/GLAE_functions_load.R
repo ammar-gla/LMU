@@ -144,6 +144,111 @@ urlFileExist <- function(url){
   list(exists = status == HTTP_STATUS_OK)
 }
 
+
+## There are some bugs with using ggplotly and ggla with facets. The below corrects the domain ranges.
+# Custom function to correct the facet chart placements
+correct_facets <- function(chart,max_fac_num=9) {
+  
+  chart_temp <- chart
+  
+  # Allow either six or nine facets
+  if(max_fac_num==6) {
+    for (fac_num in 1:max_fac_num) {
+      
+      # Assign axes names
+      if(fac_num==1) {
+        xaxis_name <- "xaxis"
+        yaxis_name <- "yaxis"
+      }          else {
+        xaxis_name <- paste0("xaxis",fac_num)
+        yaxis_name <- paste0("yaxis",fac_num)
+      }
+      
+      # Manually position axes and chart titles
+      if (fac_num %in% c(1,4)) {
+        xdom <- c(0,0.28)
+      }          else if (fac_num %in% c(2,5)) {
+        xdom <- c(0.35,0.63)
+      }          else if (fac_num %in% c(3,6)) {
+        xdom <- c(0.72,1)
+      }
+      if (fac_num %in% c(1,2,3)) {
+        y_annot <- 1
+        ydom <- c(0.56,0.99)
+      }          else if (fac_num %in% c(4,5,6)) {
+        y_annot <- 0.47
+        ydom <- c(0.03,0.46)
+      } 
+      
+      # Replace attributes
+      chart_temp[['x']][['layout']][['annotations']][[fac_num]][['font']][['family']] <-"Arial"
+      chart_temp[["x"]][["layout"]][["annotations"]][[fac_num]][["y"]] <- y_annot
+      
+      chart_temp[["x"]][["layout"]][[xaxis_name]][["domain"]] <- xdom
+      chart_temp[["x"]][["layout"]][[xaxis_name]][["tickfont"]][["family"]]<- "Arial"
+      chart_temp[["x"]][["layout"]][[xaxis_name]][["tickfont"]][["color"]] <- "#666666"
+      chart_temp[["x"]][["layout"]][[xaxis_name]][["tickfont"]][["size"]] <- 13
+      
+      chart_temp[["x"]][["layout"]][[yaxis_name]][["domain"]] <- ydom
+      chart_temp[["x"]][["layout"]][[yaxis_name]][["tickfont"]][["family"]]<- "Arial"
+      chart_temp[["x"]][["layout"]][[yaxis_name]][["tickfont"]][["color"]] <- "#666666"
+      chart_temp[["x"]][["layout"]][[yaxis_name]][["tickfont"]][["size"]] <- 13
+      
+    }
+  }
+  
+  else if(max_fac_num==9) {
+    for (fac_num in 1:max_fac_num) {
+      
+      # Assign axes names
+      if(fac_num==1) {
+        xaxis_name <- "xaxis"
+        yaxis_name <- "yaxis"
+      }          else {
+        xaxis_name <- paste0("xaxis",fac_num)
+        yaxis_name <- paste0("yaxis",fac_num)
+      }
+      
+      # Manually position axes and chart titles
+      if (fac_num %in% c(1,4,7)) {
+        xdom <- c(0,0.28)
+      }          else if (fac_num %in% c(2,5,8)) {
+        xdom <- c(0.35,0.63)
+      }          else if (fac_num %in% c(3,6,9)) {
+        xdom <- c(0.72,1)
+      }
+      if (fac_num %in% c(1,2,3)) {
+        y_annot <- 1
+        ydom <- c(0.73,0.99)
+      }          else if (fac_num %in% c(4,5,6)) {
+        y_annot <- 0.64
+        ydom <- c(0.38,0.64)
+      }        else if (fac_num %in% c(7,8,9)) {
+        y_annot <- 0.29
+        ydom <- c(0.03,0.29)
+      }
+      
+      # Replace attributes
+      chart_temp[['x']][['layout']][['annotations']][[fac_num]][['font']][['family']] <-"Arial"
+      chart_temp[["x"]][["layout"]][["annotations"]][[fac_num]][["y"]] <- y_annot
+      
+      chart_temp[["x"]][["layout"]][[xaxis_name]][["domain"]] <- xdom
+      chart_temp[["x"]][["layout"]][[xaxis_name]][["tickfont"]][["family"]]<- "Arial"
+      chart_temp[["x"]][["layout"]][[xaxis_name]][["tickfont"]][["color"]] <- "#666666"
+      chart_temp[["x"]][["layout"]][[xaxis_name]][["tickfont"]][["size"]] <- 13
+      
+      chart_temp[["x"]][["layout"]][[yaxis_name]][["domain"]] <- ydom
+      chart_temp[["x"]][["layout"]][[yaxis_name]][["tickfont"]][["family"]]<- "Arial"
+      chart_temp[["x"]][["layout"]][[yaxis_name]][["tickfont"]][["color"]] <- "#666666"
+      chart_temp[["x"]][["layout"]][[yaxis_name]][["tickfont"]][["size"]] <- 13
+      
+    }
+  }
+  
+  
+  chart <<- chart_temp
+}
+
 #.............................................................................
 ### Charting functions ----
 #.............................................................................
@@ -160,7 +265,8 @@ LFS_line_chart <- function( data_set = lfs_stats, ### This function has been wri
                             title = NULL,
                             subtitle = NULL,
                             caption = "",
-                            chart_name = NULL) {
+                            chart_name = NULL,
+                            date_label = "%b %Y" ) {
   
   pal <- gla_pal(gla_theme = "default", palette_type = "highlight", n = c(1, 1))
   theme_set(theme_gla(gla_theme = "default"))
@@ -206,7 +312,7 @@ LFS_line_chart <- function( data_set = lfs_stats, ### This function has been wri
                                                                 largest_with_cents = 1), 
                        limits = y_limits) +
     scale_x_date( date_breaks = "1 year",
-                  date_labels = "%b %Y",
+                  date_labels = date_label,
                   expand = expansion( mult = c(0.05,0.05))) +
     theme(plot.margin = unit(c(1,1,1,1), "cm"))+
     labs(title = title,
