@@ -15,7 +15,7 @@
   #*****************************************************************************
 
   ### Function to save last chart displayed in PNG and SVG [TO REPLACE STANDARD SIZES]
-  save_GLA_plot <- function(plot_name, w=8, h=10) {
+  save_GLA_plot <- function(plot_name, w=6, h=8) {
     #ggsave(paste0(IMAGE_FOLDER,Sys.Date(),"_",plot_name,".svg"), device = "svg", width = w, height = h, units = "in")
     ggsave(paste0(IMAGE_FOLDER,Sys.Date(),"_",plot_name,".png"), device = "png", width = w, height = h, units = "in")
   }
@@ -90,14 +90,16 @@
     scale_x_date( date_breaks = "1 year",
                   date_labels = "%b %Y",
                   expand = expansion( mult = c(0.05,0.05))) +
-    theme(plot.margin = unit(c(1,1,1,1), "cm"))+
+    theme(plot.margin = unit(c(1,1,1,1), "cm"),
+          plot.title=element_text(vjust=3),
+          plot.subtitle = element_text(vjust=3))+
     labs(title =  "Payrolled employees in London",
          subtitle = paste0("Latest data for ", paye_overall_last_month),
          caption = "\nSource: HM Revenue and Customs – Pay As You Earn Real Time Information.\n\nNote: Estimates are based on where employees live. March 2020 indicated by dotted line.")+
     theme(plot.caption = element_text(color = rgb(166,166,166,maxColorValue = 255)),
           legend.position = "none")
   
-  save_GLA_plot(plot_name = "paye_emps_line",h=8,w=8)
+  save_GLA_plot(plot_name = "paye_emps_line",h=6,w=8)
 
   #*****************************************************************************
   # Paye change feb20 ----
@@ -230,7 +232,7 @@
          caption = "\nSource: HM Revenue and Customs – Pay As You Earn Real Time Information.\n\nNote: Estimates are based on where employees live. March 2020 indicated by dotted line.")+
     theme(plot.caption = element_text(color = rgb(166,166,166,maxColorValue = 255)))
   
-  save_GLA_plot(plot_name = "pay_trend_chart",w=12,h=6)
+  save_GLA_plot(plot_name = "pay_trend_chart",w=12,h=5)
 
 
   #*****************************************************************************
@@ -406,7 +408,7 @@
 
   # Tweaked date label to fit into narrow image
  employment_rate <- LFS_line_chart(data_set = lfs_stats, y_var = total_in_employment_aged_16_to_64, 
-                           title = "Employment rate (% of working age population)",
+                           title = "Employment rate \n(% of working age population)",
                            caption = "\nSource: ONS Labour Force Survey.\n\nNote: The margin of error is +/- 1.6% for London and +/- 0.4% for the UK. \nMarch 2020 indicated by dotted line.",
                            chart_name = "employment", y_limits = c(70,80), nudge_y = c(-0.5, +0.5),
                            date_label="%Y") 
@@ -424,7 +426,7 @@
 
 
   unemployment_rate <- LFS_line_chart( data_set = lfs_stats, y_var = total_unemployed_aged_16_and_over, 
-                               title = "Unemployment rate (% of economically active)",
+                               title = "Unemployment rate \n(% of economically active)",
                                caption = "\nSource: ONS Labour Force Survey.\n\nNote: The margin of error is +/- 0.8% for London and +/- 0.2% for the UK. \nMarch 2020 indicated by dotted line.",
                                chart_name = "unemployment", y_limits = c(0,8), nudge_y = c(-0.2,-0.2),
                                date_label="%Y")
@@ -447,7 +449,7 @@
   
 
   econ_inactive <- LFS_line_chart( data_set = lfs_stats, y_var = total_economically_inactive_aged_16_to_64, 
-                              title =  "Economic inactivity (% of working age population)",
+                              title =  "Economic inactivity \n(% of working age population)",
                                caption = "\nSource: ONS Labour Force Survey.\n\nNote: The margin of error is not published for London, the UK margin is +/- 0.5%. \nMarch 2020 indicated by dotted line.",
                               chart_name = "inact", y_limits = c(15,25), nudge_y = c(+0.1, +0.6),
                               date_label="%Y")
@@ -539,9 +541,9 @@
     ggplot(mapping = aes(x = date_day, y = total_workforce_jobs,
                          colour = geography_name, group = geography_name,
                          text = paste0( format(date_day,'%B %Y'), "\n",
-                                       "Total jobs: ", value_form(total_workforce_jobs,s=3),"k", "\n",
-                                       "Employee jobs: ", value_form(employee_jobs,s=3),"k", "\n",
-                                       "Self-employed jobs: ", value_form(self_employment_jobs,s=3),"k", "\n"))) +
+                                        "Total jobs: ", value_form(total_workforce_jobs,s=3),"k", "\n",
+                                        "Employee jobs: ", value_form(employee_jobs,s=3),"k", "\n",
+                                        "Self-employed jobs: ", value_form(self_employment_jobs,s=3),"k", "\n"))) +
     ggla_line(aes(size= geography_name)) +
     scale_size_manual(values = c(2 * mm_to_pt, 1 * mm_to_pt)) +
     scale_colour_manual(values = pal) +
@@ -550,22 +552,25 @@
     #                geom = GeomGLATextHighlight, filter_type = "end",  size = 4.5,
     #                position = position_nudge(y = c(200,0)))+
     geom_vline(aes(xintercept = as.numeric(ymd("2020-03-01"))),
-                 linetype = "dotted",
-                 size = 1 * mm_to_pt,
-                 colour = rgb(166,166,166,maxColorValue = 255)) + # mark lockdowns start+
+               linetype = "dotted",
+               size = 1 * mm_to_pt,
+               colour = rgb(166,166,166,maxColorValue = 255)) + # mark lockdowns start+
     coord_cartesian(clip = 'off') +
     scale_y_continuous(expand = c(0, 0), labels = comma_format(),
                        limits = c(4.5e6,6.5e6)) +
     scale_x_date( date_breaks = "1 year",
                   date_labels = "%Y",
                   expand = expansion( mult = c(0.05,0.05))) +
-    theme(plot.margin = unit(c(1,1,1,1), "cm"))+
+    theme(plot.margin = unit(c(1,1,1,1), "cm"),
+          plot.title=element_text(vjust=3),
+          plot.subtitle = element_text(vjust=3),
+          legend.position = "none")+
     labs(title =  "Total number of workforce jobs in London",
          subtitle = paste0("Seasonally adjusted, latest data for ", wfj_latest_month),
          caption = "\nSource: ONS Workforce Jobs.\n\nNote: The margin of error for all jobs is +/- 0.9% for London and +/- 0.3% for the UK. \nMarch 2020 indicated by dotted line.")+
     theme(plot.caption = element_text(color = rgb(166,166,166,maxColorValue = 255)))
-
-  save_GLA_plot(plot_name = "wfj_jobs",h=8,w=8)
+  
+  save_GLA_plot(plot_name = "wfj_jobs",h=6,w=8)
 
   #*****************************************************************************
   # WFJ industries ----
@@ -617,7 +622,8 @@
     scale_y_continuous(limits = c(-14, 12), labels = dollar_format(prefix = "", 
                                                                    suffix = "%", 
                                                                    largest_with_cents = 1)) +
-    theme(plot.margin = unit(c(1,1,1,1), "cm"))+
+    theme(plot.margin = unit(c(1,1,1,1), "cm"),
+          legend.position = "none")+
     scale_x_discrete(expand = c(0,0)) +
        theme(panel.grid.major.y = element_blank(), #removed y grid
         panel.grid.minor.y = element_blank(), # removes small y grid

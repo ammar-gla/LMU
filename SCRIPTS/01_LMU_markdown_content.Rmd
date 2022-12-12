@@ -1511,7 +1511,8 @@ The latest data for `r wfj_latest_month` show that:
     scale_x_date( date_breaks = "1 year",
                   date_labels = "%Y",
                   expand = expansion( mult = c(0.05,0.05))) +
-    theme(plot.margin = unit(c(1,1,1,1), "cm"))+
+    theme(plot.margin = unit(c(1,1,1,1), "cm"),
+          legend.position = "none")+
     labs(title =  "Total number of workforce jobs in London",
          subtitle = paste0("Seasonally adjusted, latest data for ", wfj_latest_month),
          caption = "\nSource: ONS Workforce Jobs.\n\nNote: The margin of error for all jobs is +/- 0.9% for London and +/- 0.3% for the UK. \nMarch 2020 indicated by dotted line.")+
