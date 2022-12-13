@@ -210,13 +210,13 @@ Contact: [Ammar Ljubijankić Kutasi](mailto:ammar.ljubijankic@london.gov.uk)
 
 ::: {.quotebox .quote_symbol}
 
-The London labour market remained steady in October according to the latest data. 
+As for much of the post-pandemic period, the headline labour market indicators for London present a mixed bag.
 <br><br>
-Payrolled employee numbers in London continued to rebound above pre-pandemic levels while the unemployment rate remained close to record lows, the employment rate ticked up and the economic inactivity rate stabilised. 
+The number of payrolled employees and workforce jobs continued to rise slowly above pre-pandemic levels. The employment rate reached its highest level since 2021, while the inactivity rate fell by one percentage point on the quarter as the number of retired people fell in the UK overall.
 <br><br>
-However, the latest pay data indicate a worsening cost of living crisis.
+Yet the unemployment rates appear to be on the rise again, while the claimant count rate remains elevated.
 <br><br>
-National headlines report nominal average (mean) weekly earnings rising at 6.0% year-on-year across the whole economy, which after adjusting for inflation is a real-terms fall of 2.6%. But the most timely estimates of median employee pay for October 2022 showed declines on the previous month even before inflation – the first notable month-on-month falls since the start of the pandemic in London and the UK. These flash estimates could be revised when more data are received next month.
+Cost-of-living also continues to be a concern as inflation remains very high, at 9.6% in October. At the UK level, annual regular pay growth was 6.9% in the private sector and 2.7% in the public sector, among the largest differences on record.
 <br><br>
 
 :::
@@ -232,13 +232,13 @@ National headlines report nominal average (mean) weekly earnings rising at 6.0% 
 
 -   The most timely estimate of **payrolled employees** shows  `r condi_text(paye_d_month,"noun")` of around `r abs2(paye_d_month)`, or `r abs2(paye_p_month)`%, in London between `r paye_previous_month` and `r paye_overall_last_month` and was `r abs2(paye_p_feb20)`% `r condi_text(paye_p_feb20,"above")` pre-pandemic (February 2020) levels. 
 
--   The **employment rate** in London was estimated at `r emp_rate`% for the three months ending `r lfs_last_month`, `r condi_text(emp_pp_quart,"up")` `r abs2(emp_pp_quart)` percentage points (pp) on the previous quarter and `r condi_text(emp_pp_year,"up")` `r abs2(emp_pp_year)`pp on the same period in the previous year. London's employment rate was lower than the UK average (`r emp_rate_uk`%).
+-   The **employment rate** in London was estimated at `r emp_rate`% for the three months ending `r lfs_last_month`, `r condi_text(emp_pp_quart,"up")` `r abs2(emp_pp_quart)` percentage points (pp) on the previous quarter and `r condi_text(emp_pp_year,"up")` `r abs2(emp_pp_year)`pp on the same period in the previous year. London's employment rate was higher than the UK average (`r emp_rate_uk`%).
 
 -   The **unemployment rate** was still higher than the UK average. London's unemployment rate was estimated at `r unem_rate`%, `r condi_text(unem_pp_quart,"up")` `r abs2(unem_pp_quart)`pp on the quarter and `r condi_text(unem_pp_year,"up")` `r abs2(unem_pp_year)`pp from a year earlier. The UK average was `r unem_rate_uk`%.
 
 -   London's **inactivity rate** (the measure of those not looking and/or not available to work) was estimated at `r inact_rate`%. This was `r condi_text(inact_pp_quart,"up")` `r abs2(inact_pp_quart)`pp on the previous quarter and `r condi_text(inact_pp_year,"up")` `r abs2(inact_pp_year)`pp on the previous year, and is lower than the UK-wide estimate of `r inact_rate_uk`%.
 
--   The total number of **workforce jobs** `r condi_text(wfj_d_quart,"increase")` by `r abs2(wfj_d_quart)`, or `r abs2(wfj_p_quart)`%, between the `r wfj_oldquarter` quarter of 2021 and `r  wfj_newquarter` quarter of `r wfj_year`, and was `r abs2(wfj_d_dec19)`, or `r abs2(wfj_p_dec19)`%, `r condi_text(wfj_d_dec19,"above")` pre-pandemic (December 2019) levels. This is the first quarter in which workforce jobs exceeded the pre-pandemic peak.
+-   The total number of **workforce jobs** `r condi_text(wfj_d_quart,"increase")` by `r abs2(wfj_d_quart)`, or `r abs2(wfj_p_quart)`%, between the `r wfj_oldquarter` and `r  wfj_newquarter` quarter of `r wfj_year`, and was `r abs2(wfj_d_dec19)`, or `r abs2(wfj_p_dec19)`%, `r condi_text(wfj_d_dec19,"above")` pre-pandemic (December 2019) levels.
 
 
 <a href="#top">Back to top</a>
@@ -612,7 +612,7 @@ In **`r paye_overall_last_month`**:
     coord_cartesian(clip = 'off') +
     geom_hline(aes(yintercept=0), colour="gray45") +
     scale_y_continuous(expand = c(0, 0), labels = comma_format(prefix = "£"),
-                       limits=c(1600,2600)) +
+                       limits=c(1600,2700)) +
     scale_x_date( date_breaks = "1 year",
                   date_labels = "%b %Y",
                   expand = expansion( mult = c(0.05,0.05))) +
@@ -738,6 +738,87 @@ In **`r cpih_last_month_form`**, the latest month for which CPIH inflation data 
 <br/>
 
 The tabs below are each updated once per quarter, as new data is released by the ONS/HMRC.
+
+<br/>
+
+
+### Change by local authority
+
+```{r emp la stats,echo=FALSE}
+
+  paye_la_max_val <- perc_form(paye_la_stats %>% filter(measure_name=="emps" & date_day == max(date_day)) %>% filter(p_change_feb20 == max(p_change_feb20)) %>% pull(p_change_feb20),d = digits_perc)
+  
+  paye_la_max_area <- paye_la_stats %>% filter(measure_name=="emps" & date_day == max(date_day)) %>% filter(p_change_feb20 == max(p_change_feb20)) %>% pull(geography_name)
+  
+  paye_la_min_val <- perc_form(paye_la_stats %>% filter(measure_name=="emps" & date_day == max(date_day)) %>% filter(p_change_feb20 == min(p_change_feb20)) %>% pull(p_change_feb20),d = digits_perc)
+  
+  paye_la_min_area <- paye_la_stats %>% filter(measure_name=="emps" & date_day == max(date_day)) %>% filter(p_change_feb20 == min(p_change_feb20)) %>% pull(geography_name)
+  
+  paye_la_count_below_feb20 <- paye_la_stats %>% filter(measure_name=="emps" & date_day == max(date_day)) %>% mutate(count_below_feb20 = sum(p_change_feb20<0)) %>% filter(row_number()==1) %>%  pull(count_below_feb20)
+  
+  paye_la_count_tot <- paye_la_stats %>% filter(measure_name=="emps" & date_day == max(date_day)) %>% add_count() %>% filter(row_number()==1) %>%  pull(n)
+
+```
+
+<br/>
+
+There is considerable variation in the change in payrolled employees by London authority. Comparing **`r paye_la_last_month`** to pre-pandemic (February 2020) levels:
+
+-   The number of payrolled employees living in `r paye_la_max_area` was `r condi_text(paye_la_max_val,"up")` by `r abs2(paye_la_max_val)`%, while the number living in `r paye_la_min_area` was `r condi_text(paye_la_min_val,"up")` by `r abs2(paye_la_min_val)`%.
+
+-   Overall, the number of payrolled employees were still below pre-pandemic levels in `r paye_la_count_below_feb20` out of `r paye_la_count_tot` London authorities (including City of London, see map).
+
+<a href="#top">Back to top</a>
+
+```{r results="asis", echo=FALSE}
+# This code is needed to force background of Leaflet map to be white
+cat("
+<style>
+.leaflet-container {
+    background: #FFF;
+}
+</style>
+")
+```
+
+```{r emp borough map, echo=FALSE,fig.cap = map_cap, out.width='100%' ,fig.alt=paste0("Map of London with each of the 33 local authorities outlined and colour-graded by the change in number of payrolled employees from February 2020 to ",paye_la_last_month)}
+  
+  # Produces interactive and static map of boroughs with change in payrolled employees
+    
+  ## The below produces both a markdown interactive Leaflet map and a static GGPLOT map ##
+  paye_la_emp_map_data <- paye_la_stats_geo %>% 
+    filter(measure_name=="emps")
+
+  # All necessary variables for map
+  map_title <- paste0("Change since","<br>" ,"February 2020 (%)")
+  map_title_static <- paste0("Payrolled employees, % change since February 2020")
+  map_cap <- paste0("Source: HM Revenue and Customs - Pay As You Earn Real Time Information. Contains Ordnance Survey data Crown copyright and database rights [2015].","<br>","<br>", "Note: Estimates are based on where employees live.")
+  
+  # Run static map
+  paye_la_emp_map <- ggplot_map_output(dataset=paye_la_emp_map_data,
+                                       dt_var="p_change_feb20",
+                                       bin_rounding = 2,
+                                       diverge_scale = TRUE,
+                                       pal_colour = c("red","blue"),
+                                       title=map_title_static,
+                                       perc_bin = TRUE,
+                                       chart_name="paye_la_emp_map",
+                                       caption_txt=map_cap)
+  
+  # Run interactive map and output to markdown
+  leaflet_map_output(dataset=paye_la_emp_map_data,
+                     dt_var="p_change_feb20",
+                     bin_rounding = 2,
+                     diverge_scale = TRUE,
+                     pal_colour = c("red","blue"),
+                     title=map_title,
+                     perc_bin = TRUE)
+  
+
+```
+
+
+<hr  width="100%" style="background-color: rgb(134,139,142);height: 1.0px;margin: 0;"/>
 
 <br/>
 
@@ -943,87 +1024,6 @@ Recent changes in the number of payrolled employees vary by age group. Comparing
   
 ```
 
-
-
-<hr  width="100%" style="background-color: rgb(134,139,142);height: 1.0px;margin: 0;"/>
-
-<br/>
-
-
-### Change by local authority
-
-```{r emp la stats,echo=FALSE}
-
-  paye_la_max_val <- perc_form(paye_la_stats %>% filter(measure_name=="emps" & date_day == max(date_day)) %>% filter(p_change_feb20 == max(p_change_feb20)) %>% pull(p_change_feb20),d = digits_perc)
-  
-  paye_la_max_area <- paye_la_stats %>% filter(measure_name=="emps" & date_day == max(date_day)) %>% filter(p_change_feb20 == max(p_change_feb20)) %>% pull(geography_name)
-  
-  paye_la_min_val <- perc_form(paye_la_stats %>% filter(measure_name=="emps" & date_day == max(date_day)) %>% filter(p_change_feb20 == min(p_change_feb20)) %>% pull(p_change_feb20),d = digits_perc)
-  
-  paye_la_min_area <- paye_la_stats %>% filter(measure_name=="emps" & date_day == max(date_day)) %>% filter(p_change_feb20 == min(p_change_feb20)) %>% pull(geography_name)
-  
-  paye_la_count_below_feb20 <- paye_la_stats %>% filter(measure_name=="emps" & date_day == max(date_day)) %>% mutate(count_below_feb20 = sum(p_change_feb20<0)) %>% filter(row_number()==1) %>%  pull(count_below_feb20)
-  
-  paye_la_count_tot <- paye_la_stats %>% filter(measure_name=="emps" & date_day == max(date_day)) %>% add_count() %>% filter(row_number()==1) %>%  pull(n)
-
-```
-
-<br/>
-
-There is considerable variation in the change in payrolled employees by London authority. Comparing **`r paye_la_last_month`** to pre-pandemic (February 2020) levels:
-
--   The number of payrolled employees living in `r paye_la_max_area` was `r condi_text(paye_la_max_val,"up")` by `r abs2(paye_la_max_val)`%, while the number living in `r paye_la_min_area` was `r condi_text(paye_la_min_val,"up")` by `r abs2(paye_la_min_val)`%.
-
--   Overall, the number of payrolled employees were still below pre-pandemic levels in `r paye_la_count_below_feb20` out of `r paye_la_count_tot` London authorities (including City of London, see map).
-
-<a href="#top">Back to top</a>
-
-```{r results="asis", echo=FALSE}
-# This code is needed to force background of Leaflet map to be white
-cat("
-<style>
-.leaflet-container {
-    background: #FFF;
-}
-</style>
-")
-```
-
-```{r emp borough map, echo=FALSE,fig.cap = map_cap, out.width='100%' ,fig.alt=paste0("Map of London with each of the 33 local authorities outlined and colour-graded by the change in number of payrolled employees from February 2020 to ",paye_la_last_month)}
-  
-  # Produces interactive and static map of boroughs with change in payrolled employees
-    
-  ## The below produces both a markdown interactive Leaflet map and a static GGPLOT map ##
-  paye_la_emp_map_data <- paye_la_stats_geo %>% 
-    filter(measure_name=="emps")
-
-  # All necessary variables for map
-  map_title <- paste0("Change since","<br>" ,"February 2020 (%)")
-  map_title_static <- paste0("Payrolled employees, % change since February 2020")
-  map_cap <- paste0("Source: HM Revenue and Customs - Pay As You Earn Real Time Information. Contains Ordnance Survey data Crown copyright and database rights [2015].","<br>","<br>", "Note: Estimates are based on where employees live.")
-  
-  # Run static map
-  paye_la_emp_map <- ggplot_map_output(dataset=paye_la_emp_map_data,
-                                       dt_var="p_change_feb20",
-                                       bin_rounding = 2,
-                                       diverge_scale = TRUE,
-                                       pal_colour = c("red","blue"),
-                                       title=map_title_static,
-                                       perc_bin = TRUE,
-                                       chart_name="paye_la_emp_map",
-                                       caption_txt=map_cap)
-  
-  # Run interactive map and output to markdown
-  leaflet_map_output(dataset=paye_la_emp_map_data,
-                     dt_var="p_change_feb20",
-                     bin_rounding = 2,
-                     diverge_scale = TRUE,
-                     pal_colour = c("red","blue"),
-                     title=map_title,
-                     perc_bin = TRUE)
-  
-
-```
 
 
 <hr  width="100%" style="background-color: rgb(134,139,142);height: 1.0px;margin: 0;"/>
@@ -1534,7 +1534,7 @@ The latest data for `r wfj_latest_month` show that:
 ```{r,echo=FALSE}
 # Find industries with lowest and highest growth in recent data
   
-  wfj_sector_thresh <- 25000
+  wfj_sector_thresh <- 50000
   
   lowest_growth <- wfj_stats %>% filter(item_name == "total workforce jobs" & date_day == max(date_day) & geography_name == "London" & measures_name == "Value" & obs_value>=wfj_sector_thresh & !is.na(change_p_dec19_within_date_rank)) %>% slice_max(change_p_dec19_within_date_rank,n=3) 
   
@@ -1646,7 +1646,7 @@ Between December 2019 and `r wfj_latest_month`\*:
     scale_color_manual(values = rev(pal), aesthetics = "colour")+
     scale_fill_manual(values = rev(pal), aesthetics = "fill")+
     theme_set(theme_gla(gla_theme = "default", y_label_length=100)) + #GLA theme and removes lines below y-axis labels
-    scale_y_continuous(limits = c(-14, 12), labels = dollar_format(prefix = "", 
+    scale_y_continuous(limits = c(-12, 20), labels = dollar_format(prefix = "", 
                                                                    suffix = "%", 
                                                                    largest_with_cents = 1)) +
     theme(plot.margin = unit(c(1,1,1,1), "cm"))+
