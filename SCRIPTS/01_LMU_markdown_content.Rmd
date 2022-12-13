@@ -32,6 +32,8 @@ output:
 
 ```{r, main_figures ,echo=FALSE}
 
+#### NICK TEST COMMENT
+
   ### Create all the figures needed for the section below
   # Name format:
   # _d_: difference, _p_: difference in percent, _pp_: difference in percentage points,
@@ -210,13 +212,13 @@ Contact: [Ammar Ljubijankić Kutasi](mailto:ammar.ljubijankic@london.gov.uk)
 
 ::: {.quotebox .quote_symbol}
 
-As for much of the post-pandemic period, the headline labour market indicators for London present a mixed bag.
+As they have for much of the post-pandemic recovery period, the headline labour market indicators for London offer a mixed bag.
 <br><br>
-The number of payrolled employees and workforce jobs continued to rise slowly above pre-pandemic levels. The employment rate reached its highest level since 2021, while the inactivity rate fell by one percentage point on the quarter as the number of retired people fell in the UK overall.
+The number of payrolled employees and workforce jobs continued to rise further above pre-pandemic levels. The employment rate reached its highest level since 2021, while the inactivity rate fell, which had been a cause of concern, fell in the latest data. In the wider UK, a lower number of inactive 50-64 year olds brought down the overall national inactivity rate.
 <br><br>
-Yet the unemployment rates appear to be on the rise again, while the claimant count rate remains elevated.
+Yet the unemployment rate appears to be on the rise again, while the claimant count rate remains elevated.
 <br><br>
-Cost-of-living also continues to be a concern as inflation remains very high, at 9.6% in October. At the UK level, annual regular pay growth was 6.9% in the private sector and 2.7% in the public sector, among the largest differences on record.
+Cost-of-living also continues to be a concern as inflation remained very high, at 9.6% in October, with year-on-year real pay growth dipping further into negative territory. Where we have data at the UK level, annual regular pay growth was 6.9% in the private sector and 2.7% in the public sector, among the largest differences on record.
 <br><br>
 
 :::
