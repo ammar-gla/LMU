@@ -39,6 +39,7 @@ wfj_stats <- wfj_stats_raw %>%
            industry_name == "Administrative and support service activities" ~ "Administration",
            industry_name == "Accommodation and food service activities" ~ "Hospitality",
            industry_name == "Water supply; sewerage, waste management and remediation activities" ~ "Water",
+           industry_name == "Activities of households as employers;undifferentiated goods-and services-producing activities of households for own use" ~ "Household activities",
            TRUE ~ industry_name))%>% 
   group_by(industry_name, geography_name, item_name,measures_name) %>% #grouping makes calculating lag values easier
   mutate( 

@@ -228,8 +228,8 @@
                   expand = expansion( mult = c(0.05,0.05))) +
     theme(plot.margin = unit(c(1,1,1,1), "cm"))+
     labs(title =  "Median monthly employee pay",
-         subtitle = paste0("Nominal pay to ",paye_overall_last_month," not adjusted for inflation"),
-         caption = "\nSource: HM Revenue and Customs – Pay As You Earn Real Time Information.\n\nNote: Estimates are based on where employees live. March 2020 indicated by dotted line.")+
+         subtitle = paste0("Nominal pay to ",paye_overall_last_month," not adjusted for inflation"))+
+         #caption = "\nSource: HM Revenue and Customs – Pay As You Earn Real Time Information.\n\nNote: Estimates are based on where employees live. March 2020 indicated by dotted line.")+
     theme(plot.caption = element_text(color = rgb(166,166,166,maxColorValue = 255)))
   
   save_GLA_plot(plot_name = "pay_trend_chart",w=12,h=5)
